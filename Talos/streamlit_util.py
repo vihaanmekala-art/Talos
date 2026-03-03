@@ -607,7 +607,7 @@ def pull_data():
     creds = {'usernames':{}}
     for row in rows:
         username, name, email, password_hash = row
-        creds['usernames'][username] = {'name':name, 'password_hash':password_hash, 'email':email, 'logged_in':False}
+        creds['usernames'][username] = {'name':name, 'password':password_hash, 'email':email, 'logged_in':False}
     
     return creds
 
