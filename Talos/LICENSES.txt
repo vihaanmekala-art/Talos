@@ -1,0 +1,87 @@
+This product, "Talos", is proprietary software owned by Vihaan Mekala.
+Talos is distributed under a proprietary license (see LICENSE).
+
+Talos uses the following third-party libraries. These components are
+licensed separately by their respective authors. Their licenses are
+reproduced or referenced below as required.
+
+------------------------------------------------------------
+1. Streamlit
+------------------------------------------------------------
+Project: Streamlit
+License: Apache License 2.0
+URL: https://www.apache.org/licenses/LICENSE-2.0
+
+A copy of the Apache License, Version 2.0 is available at:
+https://www.apache.org/licenses/LICENSE-2.0
+
+You may not use Streamlit except in compliance with the Apache License
+2.0. Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+------------------------------------------------------------
+2. SymPy
+------------------------------------------------------------
+Project: SymPy
+License: BSD License
+URL: https://www.sympy.org/license.html
+
+SymPy is licensed under a BSD-style license. A copy of the SymPy license
+is available at:
+https://www.sympy.org/license.html
+
+------------------------------------------------------------
+3. pandas
+------------------------------------------------------------
+Project: pandas
+License: BSD License
+URL: https://pandas.pydata.org/about/license.html
+
+pandas is licensed under a BSD-style license. A copy of the pandas
+license is available at:
+https://pandas.pydata.org/about/license.html
+
+------------------------------------------------------------
+4. Matplotlib
+------------------------------------------------------------
+Project: Matplotlib
+License: Matplotlib License (PSF-style)
+URL: https://matplotlib.org/stable/users/license.html
+
+Matplotlib is licensed under a PSF-style license. A copy of the
+Matplotlib license is available at:
+https://matplotlib.org/stable/users/license.html
+
+------------------------------------------------------------
+5. Seaborn
+------------------------------------------------------------
+Project: Seaborn
+License: BSD License
+URL: https://seaborn.pydata.org/#license
+
+Seaborn is licensed under a BSD-style license. A copy of the Seaborn
+license is available at:
+https://seaborn.pydata.org/#license
+
+------------------------------------------------------------
+6. yfinance
+------------------------------------------------------------
+Project: yfinance
+License: Apache License 2.0
+URL: https://github.com/ranaroussi/yfinance/blob/master/LICENSE
+
+yfinance is licensed under the Apache License 2.0. A copy of the license
+is available at:
+https://www.apache.org/licenses/LICENSE-2.0
+
+------------------------------------------------------------
+Notes
+------------------------------------------------------------
+
+1. These third-party components are used unmodified.
+2. All trademarks are the property of their respective owners.
+3. Talos is not affiliated with or endorsed by the authors of these
+   third-party projects.

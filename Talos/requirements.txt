@@ -1,0 +1,8 @@
+streamlit==1.25.0
+pandas==2.1.1
+matplotlib==3.8.0
+seaborn==0.12.2
+yfinance==0.2.27
+sympy==1.12
+streamlit-authenticator==0.11.0
+streamlit-mic-recorder==0.0.8
