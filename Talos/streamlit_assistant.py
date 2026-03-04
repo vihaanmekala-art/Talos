@@ -21,6 +21,8 @@ from streamlit_util import stock_analysis
 from streamlit_util import pull_data
 from streamlit_util import initialize_db
 from streamlit_util import create_sql
+from streamlit_util import load_chat
+from streamlit_util import save_chat
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
@@ -203,9 +205,11 @@ if authentication_status:
             st.info(check_time())
 
         elif option == "💡 Ask AI":
-
+            
+            
+            
             if "messages" not in st.session_state:
-                st.session_state.messages = []
+                st.session_state.messages = load_chat(st.session_state['username'])
 
             st.write("Powered by Gemma 3-1B (quantized) via Ollama.")
             typed = st.chat_input("Ask a question: ")
@@ -226,11 +230,13 @@ if authentication_status:
                     st.markdown(user)
 
                 st.session_state.messages.append({"role": "user", "content": user})
+                save_chat(st.session_state['username'], 'user', user)
                 with st.chat_message('assistant'):
                     with st.spinner('Thinking...'):
                         answer = gemma_ai(user)
                         st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
+                save_chat(st.session_state['username'], 'assistant', answer)
         elif option == "🧠 Calculate an Expression":
             st.write("This was made possible with the Sympy Library.")
             st.write("Format trig ratios as Sin(30) or Cos(85)")

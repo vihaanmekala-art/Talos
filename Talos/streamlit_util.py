@@ -266,7 +266,11 @@ def fetch_alpha(symbol, api_key, premium=False):
 def stocks():
 
     try:
+        if key not in st.session_state:
+            key = []
         key = st.text_input('Type in your API key from Alpha Vantage (free/paid).', type='password')
+        key.append(st.session_state.key)
+        st.sidebar.write(st.session_state.key)
         if not key:
             st.warning("You must enter your own API key.")
             st.info("NOTE: If you are using a free key, you may have to click the 'Stock Analysis' button twice.")
@@ -596,6 +600,14 @@ def initialize_db():
             password_hash TEXT
         )
     ''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS chat_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            role TEXT,
+            content TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(username) REFERENCES users(username)
+        )''')
     conn.commit()
     conn.close()
 def pull_data():
@@ -610,7 +622,22 @@ def pull_data():
         creds['usernames'][username] = {'name':name, 'password':password_hash, 'email':email, 'logged_in':False}
     
     return creds
+def save_chat(username, role, content):
+    conn = create_sql()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO chat_history (username, role, content) VALUES (?, ?, ?)', (username, role, content) )
+    conn.commit()
+    conn.close()
+    # YET TO IMPLEMENT
 
+def load_chat(username):
+    conn = create_sql()
+    cursor = conn.cursor()
+    cursor.execute('SELECT role, content FROM chat_history WHERE username = ? ORDER BY timestamp ASC', (username, ))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+    # YET TO IMPLEMENT
 
 
 def stock_analysis(uploaded):
