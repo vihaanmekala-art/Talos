@@ -266,11 +266,8 @@ def fetch_alpha(symbol, api_key, premium=False):
 def stocks():
 
     try:
-        if key not in st.session_state:
-            key = []
+        
         key = st.text_input('Type in your API key from Alpha Vantage (free/paid).', type='password')
-        key.append(st.session_state.key)
-        st.sidebar.write(st.session_state.key)
         if not key:
             st.warning("You must enter your own API key.")
             st.info("NOTE: If you are using a free key, you may have to click the 'Stock Analysis' button twice.")
