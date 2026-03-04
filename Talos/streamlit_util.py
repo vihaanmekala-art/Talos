@@ -628,7 +628,7 @@ def save_chat(username, role, content):
     cursor.execute('INSERT INTO chat_history (username, role, content) VALUES (?, ?, ?)', (username, role, content) )
     conn.commit()
     conn.close()
-    # YET TO IMPLEMENT
+    
 
 def load_chat(username):
     conn = create_sql()
@@ -636,8 +636,10 @@ def load_chat(username):
     cursor.execute('SELECT role, content FROM chat_history WHERE username = ? ORDER BY timestamp ASC', (username, ))
     rows = cursor.fetchall()
     conn.close()
-    return [dict(row) for row in rows]
-    # YET TO IMPLEMENT
+    hist = []
+    for row in rows:
+        hist.append({'role': row[0], 'content':row[1]})
+    return hist    
 
 
 def stock_analysis(uploaded):
@@ -673,4 +675,10 @@ def stock_analysis(uploaded):
 
         except Exception as e:
             return f'Something went wrong...{e}'
-        
+
+def clear_chat(username):
+    conn = create_sql()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM chat_history WHERE username = ?', (username,))
+    conn.commit()
+    conn.close()

@@ -23,6 +23,7 @@ from streamlit_util import initialize_db
 from streamlit_util import create_sql
 from streamlit_util import load_chat
 from streamlit_util import save_chat
+from streamlit_util import clear_chat
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
@@ -205,7 +206,8 @@ if authentication_status:
             st.info(check_time())
 
         elif option == "💡 Ask AI":
-            
+            reload = st.sidebar.button('Reset Chat')
+            perm_reload = st.sidebar.button('Hard Reset Chat')
             
             
             if "messages" not in st.session_state:
@@ -214,7 +216,7 @@ if authentication_status:
             st.write("Powered by Gemma 3-1B (quantized) via Ollama.")
             typed = st.chat_input("Ask a question: ")
             st.caption("Gemma can make mistakes.")
-            for message in st.session_state.messages:
+            for message in reversed(st.session_state.messages):
                 with st.chat_message(message["role"]):
                     st.markdown(message["content"])
 
@@ -237,6 +239,13 @@ if authentication_status:
                         st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 save_chat(st.session_state['username'], 'assistant', answer)
+            if reload:
+                st.session_state.messages = []
+                st.rerun()
+            if perm_reload:
+                clear_chat(user)
+                st.session_state.messages = []
+                st.rerun()
         elif option == "🧠 Calculate an Expression":
             st.write("This was made possible with the Sympy Library.")
             st.write("Format trig ratios as Sin(30) or Cos(85)")
