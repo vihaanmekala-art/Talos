@@ -682,3 +682,15 @@ def clear_chat(username):
     cursor.execute('DELETE FROM chat_history WHERE username = ?', (username,))
     conn.commit()
     conn.close()
+def stats():
+    conn = create_sql()
+    cursor = conn.cursor()
+    query = '''
+        SELECT u.username, u.name, COUNT(c.id) as message_count
+        FROM users u
+        LEFT JOIN chat_history c ON u.username = c.username
+        GROUP BY u.username
+    '''
+    cursor.execute(query)
+    conn.commit()
+    conn.close()

@@ -24,6 +24,7 @@ from streamlit_util import create_sql
 from streamlit_util import load_chat
 from streamlit_util import save_chat
 from streamlit_util import clear_chat
+from streamlit_util import stats
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
@@ -114,22 +115,24 @@ if authentication_status:
     st.sidebar.write(f'Welcome back, {name}')
     authenticator.logout(button_name='Logout', location='sidebar')
     
-    
-    
-    
-    st.sidebar.title("Talos v.1.1.0")
-    st.title("Talos v.1.1.0")
-    option = st.sidebar.radio(
-        "Which one would you like to do?",
-        [
+    options = [
             "🏠 Home Page",
             "🕧 Check Time",
             "💡 Ask AI",
             "🧠 Calculate an Expression",
             "📈 Stock Analysis",
             "🔔 Set a reminder",
-            "⚙️System Stats",
-        ],
+            "⚙️ System Stats",
+        ]
+    
+    if st.session_state['username'] == '123_12345678910':
+        options.append('🛡️ User Information')
+    
+    st.sidebar.title("Talos v.1.1.0")
+    st.title("Talos v.1.1.0")
+    option = st.sidebar.radio(
+        "Which one would you like to do?",
+        options=options,
         label_visibility='collapsed'
     )
     theme = st.sidebar.radio('Select a Theme',['Light','Dark [Beta]'])
@@ -276,7 +279,9 @@ if authentication_status:
             calendar()
 
         elif option == "⚙️System Stats":
-                system_stats() 
+            system_stats()
+        else:
+            st.write(stats())
 
 
 elif authentication_status is False:
