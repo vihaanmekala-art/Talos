@@ -24,10 +24,32 @@ from plotly.subplots import make_subplots
 import sqlite3
 import plotly.graph_objects as go
 import numpy as np
+import requests
+
+def sent(symbol, key):
+    url = "https://www.alphavantage.co/query"
+    param = {
+        "function": "NEWS_SENTIMENT",
+        "tickers": symbol,
+        "apikey": key,
+        "limit": 5
+    }
+    response = requests.get(url, params=param)
+    data = response.json()
+
+    if 'feed' not in data:
+        return []
+    results = []
+    for a in data['feed']:
+        results.append({'title':a['title'], 'sentiment':a['overall_sentiment_label'], 'score':a['overall_sentiment_score']})
+    return results
 
 def wrap(df):
     df = df.copy()
-    df['Ty'] = (df['High'] + df['Low'] + df['Close']) / 3
+    try:
+        df['Ty'] = (df['High'] + df['Low'] + df['Close']) / 3
+    except ZeroDivisionError:
+        return None
 
     df['Cum_TP_Vol'] = (df['Ty'] * df['Volume']).cumsum()
 
@@ -443,6 +465,14 @@ def stocks():
                             Be concise and analytical.
                             """
                         ))
+                    st.subheader('News and Sentiment Score')
+                    news = sent(user, key)
+                    if news:
+                        for new in news:
+                            st.write(f'{new['score']}-{new['sentiment']}-{new['title']}')
+                    else:
+                        st.write('No news was found for this ticker.')
+                    
                     plot_df = df.dropna(subset=['MACD', 'Signal_Line', 'MACD_Histogram'])
                     if not plot_df.empty:
                         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, subplot_titles=(f'{user} Stock Analysis', 'MACD'), row_width=[0.3, 0.7])
