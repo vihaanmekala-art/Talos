@@ -443,7 +443,16 @@ def stocks():
                         st.snow()
                     else:
                         st.balloons()
-
+                    st.subheader('News and Sentiment Score')
+                    news = sent(user, key)
+                    mean_sentiment = news['score'].mean()
+                    if news:
+                        for new in news:
+                            st.write(f'{new['score']}-{new['sentiment']}-{new['title']}')
+                            st.write(f'Mean Sentiment Score on a scale of -1 to 1: {new['score'].mean()}')
+                    else:
+                        st.write('No news was found for this ticker.')
+                    
                     
                     
                     st.subheader('What the AI says [Beta]')
@@ -455,6 +464,7 @@ def stocks():
                             Volume Ratio: {vol_ratio}
                             CAGR: {stock_cagr}
                             MACD Crossover: {crossover}
+                            Sentiment Score: {mean_sentiment}
 
                             Rules:
                             - RSI < 30 = oversold
@@ -465,13 +475,6 @@ def stocks():
                             Be concise and analytical.
                             """
                         ))
-                    st.subheader('News and Sentiment Score')
-                    news = sent(user, key)
-                    if news:
-                        for new in news:
-                            st.write(f'{new['score']}-{new['sentiment']}-{new['title']}')
-                    else:
-                        st.write('No news was found for this ticker.')
                     
                     plot_df = df.dropna(subset=['MACD', 'Signal_Line', 'MACD_Histogram'])
                     if not plot_df.empty:
