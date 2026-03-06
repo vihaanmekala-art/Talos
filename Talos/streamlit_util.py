@@ -44,6 +44,7 @@ def sent(symbol, key):
     }
     response = requests.get(url, params=param)
     data = response.json()
+    print(data)
 
     if 'feed' not in data:
         return []
@@ -452,16 +453,18 @@ def stocks():
                         st.balloons()
                     st.subheader('News and Sentiment Score')
                     news = sent(user, alpha_key)
-                    print(type(news))
-                    print(news[:2])
-                    mean_sentiment = sum(item['score'] for item in news) / len(news['score'])
+                    try:
+                        mean_sentiment = sum(item['score'] for item in news) / len(news)
+                    except Exception as e:
+                        st.write('Mean Sentiment: 0')
                     if news:
                         for new in news:
                             st.write(f'{new['score']}-{new['sentiment']}-{new['title']}')
                             
                     else:
                         st.write('No news was found for this ticker.')
-                    st.write(f'Mean Sentiment Score on a scale of -1 to 1: {mean_sentiment}')
+                    if mean_sentiment != 0:
+                        st.write(f'Mean Sentiment Score on a scale of -1 to 1: {mean_sentiment}')
                     
                     
                     st.subheader('What the AI says [Beta]')
