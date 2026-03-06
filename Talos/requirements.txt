@@ -5,9 +5,10 @@ plotly
 requests
 sympy
 psutil
-streamlit-authenticator
+streamlit-authenticator==0.3.3
 streamlit-mic-recorder
 vaderSentiment
 matplotlib
 seaborn
 kaleido
+python-dotenv
