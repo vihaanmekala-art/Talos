@@ -39,7 +39,7 @@ credentials = pull_data()
 authenticator = stauth.Authenticate(
     credentials,
     "talos_cookie",      
-    "signature_key",     
+    "83fd282cb7f9de2f020b106031da956ddb3a958d8c8cf85ae0f7676e07c5fc48",     
     cookie_expiry_days=30
 )
 
@@ -247,7 +247,7 @@ if authentication_status:
                 st.session_state.messages = []
                 st.rerun()
             if perm_reload:
-                clear_chat(user)
+                clear_chat(st.session_state['username'])
                 st.session_state.messages = []
                 st.rerun()
         elif option == "🧠 Calculate an Expression":

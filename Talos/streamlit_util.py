@@ -445,14 +445,14 @@ def stocks():
                         st.balloons()
                     st.subheader('News and Sentiment Score')
                     news = sent(user, key)
-                    mean_sentiment = news['score'].mean()
+                    mean_sentiment = sum(news['score']) / len(news['score'])
                     if news:
                         for new in news:
                             st.write(f'{new['score']}-{new['sentiment']}-{new['title']}')
-                            st.write(f'Mean Sentiment Score on a scale of -1 to 1: {new['score'].mean()}')
+                            
                     else:
                         st.write('No news was found for this ticker.')
-                    
+                    st.write(f'Mean Sentiment Score on a scale of -1 to 1: {mean_sentiment}')
                     
                     
                     st.subheader('What the AI says [Beta]')
@@ -494,7 +494,7 @@ def stocks():
                         fig.add_trace(go.Bar(x=df['Date'], y=df['MACD_Histogram'], name='Histogram'), row=2, col=1)
                         fig.add_trace(go.Scatter(x=df['Date'], y=df['MACD'], name='MACD', line=dict(color='black')), row=2, col=1)
                         fig.add_trace(go.Scatter(x=df['Date'], y=df['Signal_Line'], name='Signal', line=dict(color='red')), row=2, col=1)
-                        fig.add_trace(go.Scatter(x=df['Date'], y=df['VWAP'], name='VWAP', line=dict(color='red')), row=2, col=1)
+                        fig.add_trace(go.Scatter(x=df['Date'], y=df['VWAP'], name='VWAP', line=dict(color='red')), row=1, col=1)
                         fig.update_layout(
                                 xaxis_rangeslider_visible=False,
                                 height=800,
@@ -645,6 +645,7 @@ def pull_data():
     cursor = conn.cursor()
     cursor.execute('SELECT username, name, email, password_hash FROM users')
     rows = cursor.fetchall()
+    conn.commit()
     conn.close()
     creds = {'usernames':{}}
     for row in rows:
@@ -715,12 +716,15 @@ def clear_chat(username):
 def stats():
     conn = create_sql()
     cursor = conn.cursor()
+    
     query = '''
         SELECT u.username, u.name, COUNT(c.id) as message_count
         FROM users u
         LEFT JOIN chat_history c ON u.username = c.username
         GROUP BY u.username
     '''
+    rows = cursor.fetchall()
     cursor.execute(query)
     conn.commit()
     conn.close()
+    return rows
