@@ -17,7 +17,6 @@ import sympy as sp
 import streamlit as st
 import pandas as pd
 import psutil
-import json
 import platform
 from matplotlib.backends.backend_pdf import PdfPages
 from plotly.subplots import make_subplots
@@ -25,7 +24,16 @@ import sqlite3
 import plotly.graph_objects as go
 import numpy as np
 import requests
+import os
 
+def grok(question, key):
+    response = requests.post("https://api.groq.com/openai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {os.getenv(f'{key}')}"},
+        json={
+            "model": "gemma2-9b-it",
+            "messages": [{"role": "user", "content": question}]
+        })
+    return response.json()['choices'][0]['message']['content']
 def sent(symbol, key):
     url = "https://www.alphavantage.co/query"
     param = {
@@ -132,7 +140,6 @@ def macd(df):
     return df
 
 def rsi(df, period = 14):
-    print(df.columns)
     df = df.dropna()
     df['Close'] = pd.to_numeric(df['Close'], errors = 'coerce')
     delta = df['Close'].diff()
@@ -250,7 +257,6 @@ def fetch_alpha(symbol, api_key, premium=False):
 
     response = requests.get(url, params=params)
     data = response.json()
-    print(data)
     if 'Note' in data:
         st.error("Alpha Vantage Rate Limit Hit! Please try again later or upgrade your key.")
         st.stop()
@@ -289,12 +295,13 @@ def stocks():
 
     try:
         
-        key = st.text_input('Type in your API key from Alpha Vantage (free/paid).', type='password')
-        if not key:
+        alpha_key = st.text_input('Type in your API key from Alpha Vantage (free/paid).', type='password')
+        grok_key = st.text_input('Type in your API key from Grok (free/paid).', type='password')
+        if not alpha_key:
             st.warning("You must enter your own API key.")
             st.info("NOTE: If you are using a free key, you may have to click the 'Stock Analysis' button twice.")
             st.stop()
-        if key:
+        if alpha_key:
             
             user = st.text_input("Choose a stock. ").upper()
             user2 = st.date_input("Choose a starting date. Format as YYYY-MM-DD: ")
@@ -305,7 +312,7 @@ def stocks():
 
                 else:
 
-                    df = fetch_alpha(user, key, premium=False)  
+                    df = fetch_alpha(user, alpha_key, premium=False)  
                     if df.empty:
                         st.error("Invalid ticker or API issue.")
                         st.stop()
@@ -444,8 +451,10 @@ def stocks():
                     else:
                         st.balloons()
                     st.subheader('News and Sentiment Score')
-                    news = sent(user, key)
-                    mean_sentiment = sum(news['score']) / len(news['score'])
+                    news = sent(user, alpha_key)
+                    print(type(news))
+                    print(news[:2])
+                    mean_sentiment = sum(item['score'] for item in news) / len(news['score'])
                     if news:
                         for new in news:
                             st.write(f'{new['score']}-{new['sentiment']}-{new['title']}')
@@ -456,7 +465,7 @@ def stocks():
                     
                     
                     st.subheader('What the AI says [Beta]')
-                    st.info(gemma_ai(
+                    st.info(grok(
                             f"""
                             You are a stock market analyst.
                             RSI: {current_rsi}
@@ -474,7 +483,7 @@ def stocks():
                             In 3-4 clear sentences, describe the stock's current condition, momentum, and risk level.
                             Be concise and analytical.
                             """
-                        ))
+                        , grok_key))
                     
                     plot_df = df.dropna(subset=['MACD', 'Signal_Line', 'MACD_Histogram'])
                     if not plot_df.empty:
@@ -579,42 +588,8 @@ def system_stats():
 
     time.sleep(0.5)
 
-def load_json():
-    
-    try:
-        with open('secret.json','r') as file:
-            return json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        data = {
-            "usernames": {
-                "admin": {
-                    "name": "Admin User",
-                    "password": "$2b$12$sHpHwtjKZHxKwSDLi88qZO7tb8Kwc8fuwVf1lcyEu31kyAOpPLuyG",
-                    "email": "admin@talos.local"
-                },
-                "guest": {
-                    "name": "Guest User",
-                    "password": "$2b$12$cxasRoYmJWmTtJqjXQuyXuma1zZB/X3lORCGxEIh3PImQJXf5hz5a",
-                    "email": "guest@talos.local"
-                }
-            }
-        }
-        with open('secret.json','w') as file:
-            json.dump(data,file, indent=2)
-            return data
-        
-def save_json(credentials):
-    
-    
-    with open('secret.json', 'w') as file:
-        return json.dump(credentials,file, indent=2)
-    
-@st.cache_data(ttl=30)    
-def caching_stock_data(ticker, key):
-    df = fetch_alpha(ticker, key)
-    if df.empty:
-        return 'Invalid'
-    return df
+
+
 
 def create_sql():
     conn = sqlite3.connect('talos.db', check_same_thread=False)
