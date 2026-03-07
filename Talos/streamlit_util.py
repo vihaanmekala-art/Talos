@@ -24,16 +24,34 @@ import sqlite3
 import plotly.graph_objects as go
 import numpy as np
 import requests
-import os
 
 def grok(question, key):
-    response = requests.post("https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {os.getenv(f'{key}')}"},
-        json={
-            "model": "gemma2-9b-it",
-            "messages": [{"role": "user", "content": question}]
-        })
-    return response.json()['choices'][0]['message']['content']
+
+    if not key:
+        return "Error: API Key not found in environment variables."
+
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "user", "content": question}]
+    }
+
+    response = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers=headers,
+        json=payload
+    )
+
+    data = response.json()
+
+    if response.status_code == 200:
+        return data['choices'][0]['message']['content']
+    else:
+        return f"API Error {response.status_code}: {data.get('error', {}).get('message', 'Unknown error')}"
 def sent(symbol, key):
     url = "https://www.alphavantage.co/query"
     param = {
@@ -456,16 +474,17 @@ def stocks():
                     try:
                         mean_sentiment = sum(item['score'] for item in news) / len(news)
                     except Exception as e:
+                        mean_sentiment = 0
                         st.write('Mean Sentiment: 0')
                     if news:
-                        for new in news:
-                            st.write(f'{new['score']}-{new['sentiment']}-{new['title']}')
+                        if mean_sentiment != 0:
+                            st.write(f'Mean Sentiment Score on a scale of -1 to 1: {mean_sentiment}')
+                        else:
+                            st.write('Mean Sentiment Score on a scale of -1 to 1: 0')
                             
                     else:
                         st.write('No news was found for this ticker.')
-                    if mean_sentiment != 0:
-                        st.write(f'Mean Sentiment Score on a scale of -1 to 1: {mean_sentiment}')
-                    
+                
                     
                     st.subheader('What the AI says [Beta]')
                     st.info(grok(
@@ -484,7 +503,7 @@ def stocks():
                             - Interpret other metrics normally.
 
                             In 3-4 clear sentences, describe the stock's current condition, momentum, and risk level.
-                            Be concise and analytical.
+                            Be concise and analytical. Remember that the numbers matter more than the sentiment.
                             """
                         , grok_key))
                     
