@@ -25,6 +25,8 @@ import plotly.graph_objects as go
 import numpy as np
 import requests
 
+
+
 def grok(question, key):
 
     if not key:
@@ -116,6 +118,7 @@ def sim(df):
     rng = np.random.default_rng()
  
     noise = rng.normal(ret, vola, (30, 1000))
+    
 
     price_path = price * (1 + noise).cumprod(axis=0)
 
@@ -282,6 +285,8 @@ def fetch_alpha(symbol, api_key, premium=False):
     
     if 'Information' in data:
         st.error(f'Message from Alpha Vantage: {data["Information"]}')
+    if 'Error Message' in data or ValueError in data:
+        st.error(f'Message from Alpha Vantage: {data}')
 
     if "Time Series (Daily)" not in data:
         return pd.DataFrame()
@@ -372,7 +377,14 @@ def stocks():
                     percent_delta = (price_delta / last_close) * 100
                     df["SMA_100"] = df[close].rolling(window=100).mean()
                     df["SMA_50"] = df[close].rolling(window=50).mean()
-
+                    url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={user}&apikey={alpha_key}'
+                    response = requests.get(url)
+                    data = response.json()
+                    pe_ratio = (data.get('PERatio', 'N/A'))
+                    ps_ratio = data.get('PriceToSalesRatioTTM', 'N/A')
+                    pb_ratio = data.get('PriceToBookRatio', 'N/A')
+                    profit_margin = data.get('ProfitMargin', 'N/A')
+                    forward_pe = data.get('ForwardPE', 'N/A')
 
 
 
@@ -422,6 +434,8 @@ def stocks():
             
                     st.metric(f'MACD', f'{current_macd}')
 
+
+
                     if yesterday_100 <= yesterday_50 and today_100 > today_50:
                         st.write("GOLDEN CROSS ✨📈")
                         st.balloons()
@@ -462,6 +476,12 @@ def stocks():
                         value=f"{price:.2f}",
                         delta=f"{percent_delta:.2f}"
                     )
+                    st.metric('P/E Ratio',pe_ratio)
+                    st.metric('Forward P/E Ratio', forward_pe)
+                    st.metric('P/S Ratio', ps_ratio)
+                    st.metric('P/B Ratio', pb_ratio)
+                    st.metric('Profit Margin', profit_margin)
+                    
                     
                     
                     st.write(f'The MACD crossover is {crossover}.')
@@ -489,21 +509,42 @@ def stocks():
                     st.subheader('What the AI says [Beta]')
                     st.info(grok(
                             f"""
-                            You are a stock market analyst.
-                            RSI: {current_rsi}
-                            Annual Volatility: {annual_vol}
-                            Volume Ratio: {vol_ratio}
-                            CAGR: {stock_cagr}
-                            MACD Crossover: {crossover}
-                            Sentiment Score: {mean_sentiment}
+                            You are a Senior Equity Research Analyst. Your task is to provide a high-density, 4-sentence synthesis of market data for institutional clients.
+                            Round all numbers to the nearest tenth. 
+                            Eliminate Filler: "Ban phrases like 'as evidenced by,', 'blind spot' 'the company's,' and 'representing a.' Use direct, punchy descriptors (e.g., 'Indefensible valuation' instead of 'The valuation appears stretched')."
+                            Explicitly flag any 'Bullish/Bearish Divergence' when technicals are strong but growth is negative.
+                            Bold the category at the start of each sentence (e.g., Posture:, Conviction:, Valuation:).
+Use Financial Shorthand: "Instruct the AI to use terms like 'multiple expansion/contraction,' 'technical regime,' 'risk-reward skew,' and 'fundamental decay.'"
 
-                            Rules:
-                            - RSI < 30 = oversold
-                            - RSI > 70 = overbought
-                            - Interpret other metrics normally.
+The "So What?" Rule: "Every sentence must lead with the conclusion, followed by the supporting data (e.g., 'Avoid: 36.8% volatility' rather than 'We recommend avoiding because volatility is 36.8%')."
 
-                            In 3-4 clear sentences, describe the stock's current condition, momentum, and risk level.
-                            Be concise and analytical. Remember that the numbers matter more than the sentiment.
+TECHNICAL INDICATORS:
+- RSI: {current_rsi} (Oversold <30 | Neutral 30-70 | Overbought >70)
+- MACD Crossover: {crossover} (Bullish if MACD crosses above signal line, Bearish if below)
+- Annual Volatility: {annual_vol} (Low <20% | Moderate 20-40% | High >40%)
+- Volume Ratio: {vol_ratio} (vs 20-day avg; >1.5 = elevated interest, <0.5 = weak conviction)
+
+FUNDAMENTAL INDICATORS:
+- P/E Ratio: {pe_ratio} (Industry avg ~20-25; higher = growth premium or overvaluation)
+- P/B Ratio: {pb_ratio} (>3 may indicate overvaluation; <1 may indicate undervaluation)
+- P/S Ratio: {ps_ratio} (High P/S only justified by strong revenue growth)
+- CAGR: {stock_cagr} (Compound Annual Growth Rate; benchmark against S&P 500 ~10%)
+
+SENTIMENT:
+- Sentiment Score: {mean_sentiment} (Scale: -1 fully negative to +1 fully positive; weight this LESS than quantitative data)
+
+
+ANALYSIS GUIDELINES:
+1. SYNTHESIZE: Do not recite data points in isolation; explain their interaction (e.g., how Volume confirms MACD).
+2. PRECISION: Use 1-2 decimal places max. Avoid "decimal noise."
+3. TONE: Be decisive and skeptical. Use "Bottom Line Up Front" (BLUF) logic.
+4. VOLATILITY: Always frame volatility as a "risk-adjusted" hurdle, not just a number.
+
+OUTPUT FORMAT (Exactly 4 sentences):
+1. THE SETUP: Synthesize RSI, MACD, and Volume into a single market posture.
+2. CONVICTION: Define the strength of the move based on the Volume Ratio/MACD spread.
+3. VALUATION: Contextualize CAGR against P/E, P/B, or P/S; if data is missing, flag the "valuation blind spot."
+4. THE VERDICT: A final risk-adjusted recommendation (e.g., 'Avoid,' 'Accumulate,' or 'Neutral') based on Volatility and contradictions.
                             """
                         , grok_key))
                     
@@ -720,8 +761,7 @@ def stats():
         LEFT JOIN chat_history c ON u.username = c.username
         GROUP BY u.username
     '''
-    rows = cursor.fetchall()
     cursor.execute(query)
-    conn.commit()
+    rows = cursor.fetchall()
     conn.close()
     return rows
