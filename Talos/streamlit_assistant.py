@@ -12,7 +12,6 @@ import random
 import streamlit_authenticator as stauth
 from streamlit_mic_recorder import speech_to_text
 from streamlit_util import check_time
-from streamlit_util import gemma_ai
 from streamlit_util import calculate
 from streamlit_util import stocks
 from streamlit_util import calendar
@@ -25,6 +24,7 @@ from streamlit_util import load_chat
 from streamlit_util import save_chat
 from streamlit_util import clear_chat
 from streamlit_util import stats
+from streamlit_util import grok
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
@@ -72,7 +72,7 @@ if st.session_state.get('registering'):
         
         registered = authenticator.register_user(location='main', key='register_user_form')
         st.session_state['register_render_count'] += 1
-       
+    
         
         if registered and st.session_state['register_render_count'] > 1:
             reg_email, reg_username, reg_name = registered
@@ -203,7 +203,7 @@ if authentication_status:
                 with st.spinner('Thinking...'):
                     topics = ["Space", "Coding", "Deep Sea", "History", "Robots", "Animals"]
                     chosen_topic = random.choice(topics)
-                    ans = gemma_ai(f'Give me a random fun fact or tip in {chosen_topic}')
+                    ans = grok(f'Give me a random fun fact or tip in {chosen_topic}')
                     st.info(ans)
 
         elif option == "🕧 Check Time":
@@ -239,7 +239,7 @@ if authentication_status:
                 save_chat(st.session_state['username'], 'user', user)
                 with st.chat_message('assistant'):
                     with st.spinner('Thinking...'):
-                        answer = gemma_ai(user)
+                        answer = grok(user)
                         st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 save_chat(st.session_state['username'], 'assistant', answer)
