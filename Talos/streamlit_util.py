@@ -487,10 +487,11 @@ def stocks():
                     st.metric('Profit Margin', profit_margin)
                     try:
                         peg = float(pe_ratio) / float(Cagr)
-                        st.metric('PEG Ratio', peg)
-                    except Exception as e:
+                        peg_dis = peg
+                        st.metric('PEG Ratio', peg_dis)
+                    except Exception:
                         st.error('Error Calculating PEG Ratio.')
-                    
+                        peg_dis = 'N/A'
                     st.write(f'The MACD crossover is {crossover}.')
                     if crossover == 'Bearish':
                         st.snow()
@@ -536,7 +537,7 @@ FUNDAMENTAL INDICATORS:
 - P/B Ratio: {pb_ratio} (>3 may indicate overvaluation; <1 may indicate undervaluation)
 - P/S Ratio: {ps_ratio} (High P/S only justified by strong revenue growth)
 - CAGR: {stock_cagr} (Compound Annual Growth Rate; benchmark against S&P 500 ~10%)
-- PEG Ratio: {peg} (A low PEG ratio means you are paying a bargain price for a company's future growth, where a value under 1.0 suggests the stock is undervalued compared to its earnings potential.)
+- PEG Ratio: {peg_dis} (A low PEG ratio means you are paying a bargain price for a company's future growth, where a value under 1.0 suggests the stock is undervalued compared to its earnings potential.)
 
 SENTIMENT:
 - Sentiment Score: {mean_sentiment} (Scale: -1 fully negative to +1 fully positive; weight this LESS than quantitative data)
