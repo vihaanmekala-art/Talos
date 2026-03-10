@@ -25,6 +25,8 @@ from streamlit_util import load_chat
 from streamlit_util import save_chat
 from streamlit_util import clear_chat
 from streamlit_util import stats
+import os
+from dotenv import load_dotenv
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
@@ -34,12 +36,12 @@ main_area = st.container()
 
 
 credentials = pull_data()   
-
+cookie_key = st.secrets['COOKIE_SECRET_KEY']
 
 authenticator = stauth.Authenticate(
     credentials,
     "talos_cookie",      
-    "83fd282cb7f9de2f020b106031da956ddb3a958d8c8cf85ae0f7676e07c5fc48",     
+    cookie_key,     
     cookie_expiry_days=30
 )
 
