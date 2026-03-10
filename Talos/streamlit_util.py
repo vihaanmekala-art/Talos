@@ -121,8 +121,13 @@ def sim(df):
     
 
     price_path = price * (1 + noise).cumprod(axis=0)
+   
+    p5 = np.percentile(price_path, 5, axis=1)
+    p50 = np.percentile(price_path, 50, axis=1)
+    p95 = np.percentile(price_path, 95, axis=1)
 
-    return price_path
+
+    return price_path, p5, p50, p95
 def gauge(value, title, color='green'):
     fig = go.Figure(go.Indicator(
         mode = "gauge+number",
@@ -470,7 +475,6 @@ def stocks():
                     else:
                         st.write('Bearish Interday Bias')
                     
-
                     st.metric(
                         label="Current Price",
                         value=f"{price:.2f}",
@@ -481,8 +485,11 @@ def stocks():
                     st.metric('P/S Ratio', ps_ratio)
                     st.metric('P/B Ratio', pb_ratio)
                     st.metric('Profit Margin', profit_margin)
-                    
-                    
+                    try:
+                        peg = float(pe_ratio) / float(Cagr)
+                        st.metric('PEG Ratio', peg)
+                    except Exception as e:
+                        st.error('Error Calculating PEG Ratio.')
                     
                     st.write(f'The MACD crossover is {crossover}.')
                     if crossover == 'Bearish':
@@ -493,7 +500,7 @@ def stocks():
                     news = sent(user, alpha_key)
                     try:
                         mean_sentiment = sum(item['score'] for item in news) / len(news)
-                    except Exception as e:
+                    except Exception:
                         mean_sentiment = 0
                         st.write('Mean Sentiment: 0')
                     if news:
@@ -529,6 +536,7 @@ FUNDAMENTAL INDICATORS:
 - P/B Ratio: {pb_ratio} (>3 may indicate overvaluation; <1 may indicate undervaluation)
 - P/S Ratio: {ps_ratio} (High P/S only justified by strong revenue growth)
 - CAGR: {stock_cagr} (Compound Annual Growth Rate; benchmark against S&P 500 ~10%)
+- PEG Ratio: {peg} (A low PEG ratio means you are paying a bargain price for a company's future growth, where a value under 1.0 suggests the stock is undervalued compared to its earnings potential.)
 
 SENTIMENT:
 - Sentiment Score: {mean_sentiment} (Scale: -1 fully negative to +1 fully positive; weight this LESS than quantitative data)
@@ -552,12 +560,32 @@ OUTPUT FORMAT (Exactly 4 sentences):
                     if not plot_df.empty:
                         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, subplot_titles=(f'{user} Stock Analysis', 'MACD'), row_width=[0.3, 0.7])
                         
+                        price_path ,p5, p50, p95 = sim(df)
+                        days = list(range(30))
                         fig_sim = go.Figure()
                         projected = sim(df)
                         for l in range(1000):
-                            fig_sim.add_trace(go.Scatter(y=projected[:, l], mode='lines', 
-                            line=dict(color='rgba(100, 100, 100, 0.05)'), 
-                            showlegend=False))
+                             fig_sim.add_trace(go.Scatter(
+        y=price_path[:, l], mode='lines',
+        line=dict(color='rgba(100, 100, 100, 0.05)'),
+        showlegend=False
+    ))
+
+                        
+                        fig_sim.add_trace(go.Scatter(
+                            x=days, y=p5,
+                            fill='tonexty',
+                            fillcolor='rgba(100, 149, 237, 0.3)',
+                            line=dict(color='rgba(0,0,0,0)'),
+                            name='5th–95th Percentile'
+                        ))
+
+        
+                        fig_sim.add_trace(go.Scatter(
+                            x=days, y=p50,
+                            line=dict(color='royalblue', width=2),
+                            name='Median Path'
+                        ))
                         fig.add_trace(go.Scatter(x=df['Date'], y=df['Close'], name='Closing Price', line=dict(color='gold', width=1)), row=1, col=1)
                         fig.add_trace(go.Scatter(x=df['Date'], y=df['SMA_50'], name='50 Day SMA', line=dict(color='orange', width=1)), row=1, col=1)
                         fig.add_trace(go.Scatter(x=df['Date'], y=df['SMA_100'], name='100 Day SMA', line=dict(color='orange', width=1)), row=1, col=1)
