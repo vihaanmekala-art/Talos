@@ -25,9 +25,6 @@ from streamlit_util import load_chat
 from streamlit_util import save_chat
 from streamlit_util import clear_chat
 from streamlit_util import stats
-import os
-from dotenv import load_dotenv
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
