@@ -72,8 +72,7 @@ real-world interest for educational and analytical use.
 
 ## How to Run Locally
 ```bash
-git clone github.com/vihaanmekala-art/Talos
+git clone https://github.com/vihaanmekala-art/Talos.git
 cd Talos
 pip install -r requirements.txt
 streamlit run streamlit_app.py
-
