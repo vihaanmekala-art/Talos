@@ -355,7 +355,6 @@ def port(tickers, num_port=3000):
     min_risk = result_df['risk'].idxmin()
     min_vol = result_df.iloc[min_risk]
     max_sharpe_df = result_df.iloc[max_sharpe]
-    st.info('NOTE: IN THE EFFICIENT FRONTIER, HOVER OVER THE STAR. THEN, FIND OUT HOW MUCH TO ALLOCATE, RESPECTIVELY TO HOW YOU TYPED IT.')
     fig = go.Figure()
 
 
