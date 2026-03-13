@@ -8,22 +8,15 @@ This software is proprietary. Resale or redistribution is strictly prohibited.
 Users must have their own Alpha Vantage account and obey Alpha Vantage’s terms.
 """
 import io
-import time
-import shutil
 import requests
-from pathlib import Path
-import subprocess
 import sympy as sp
 import streamlit as st
 import pandas as pd
-import psutil
-import platform
 from matplotlib.backends.backend_pdf import PdfPages
 from plotly.subplots import make_subplots
 import sqlite3
 import plotly.graph_objects as go
 import numpy as np
-import requests
 import yfinance as yf
 
 def intr(ticker, growth_rate, discount_rate, terminal_growth_rate, years=5):
@@ -318,7 +311,7 @@ def port(tickers, num_port=3000):
     if prices.empty or len(prices.columns) < 2:
         st.warning('You need at least 2 tickers.')
         return None
-    returns = prices.pct_change().dropna()
+    returns = np.log(prices / prices.shift(1)) 
     mean = returns.mean() * 252
     cov_matrix = returns.cov() * 252
 
