@@ -72,8 +72,8 @@ real-world interest for educational and analytical use.
 
 ## How to Run Locally
 ```bash
-git clone <your-repo-url>
-cd <repo-name>
+git clone github.com/vihaanmekala-art/Talos
+cd Talos
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run streamlit_app.py
 
