@@ -24,8 +24,7 @@ import sqlite3
 import plotly.graph_objects as go
 import numpy as np
 import requests
-
-
+import yfinance as yf
 
 def grok(question, key):
 
@@ -108,6 +107,8 @@ def sharpness(df, risk_free = 0.0369):
     sharpe_ratio = ((mean - daily_rf) / vola) * np.sqrt(252)
 
     return sharpe_ratio
+
+
 def sim(df):
     returns = df['Close'].dropna().pct_change()
     price = df['Close'].iloc[-1]
@@ -318,7 +319,75 @@ def fetch_alpha(symbol, api_key, premium=False):
 
     return df
 
+def port(tickers, num_port=3000):
+    prices = pd.DataFrame()
+    for ticker in tickers:
+        df = yf.download(ticker, period='2y', auto_adjust=True)
+        if not df.empty:
+            prices[ticker] = df['Close']
+    if prices.empty or len(prices.columns) < 2:
+        st.warning('You need at least 2 tickers.')
+        return None
+    returns = prices.pct_change().dropna()
+    mean = returns.mean() * 252
+    cov_matrix = returns.cov() * 252
 
+    result = []
+
+    weight = []
+
+    assets = len(tickers)
+    risk_free = 0.0369
+    gene = np.random.default_rng()
+    for _ in range(num_port):
+       
+        w = gene.random(assets)
+        w = w / w.sum()
+        weight.append(w)
+        portfolio_return = np.dot(w, mean)
+        portfolio_risk =  np.sqrt(w.T @ cov_matrix.values @ w)
+        sharpe = (portfolio_return - risk_free) / portfolio_risk
+
+        result.append({'returns': portfolio_return, 'risk': portfolio_risk, 'sharpe':sharpe, 'Weight':w})
+
+    result_df = pd.DataFrame(result)
+    max_sharpe = result_df['sharpe'].idxmax()
+    min_risk = result_df['risk'].idxmin()
+    min_vol = result_df.iloc[min_risk]
+    max_sharpe_df = result_df.iloc[max_sharpe]
+    st.info('NOTE: IN THE EFFICIENT FRONTIER, HOVER OVER THE STAR. THEN, FIND OUT HOW MUCH TO ALLOCATE, RESPECTIVELY TO HOW YOU TYPED IT.')
+    fig = go.Figure()
+
+
+    fig.add_trace(go.Scatter(x=result_df['risk'], y=result_df['returns'], mode = 'markers', marker = dict(
+        color=result_df['sharpe'],
+        colorscale='Viridis',
+        showscale=True,
+        colorbar=dict(title='Sharpe Ratio'),
+        size=4,
+        opacity=0.6
+    ), name='Chart of Portfolios'))
+
+    fig.add_trace(go.Scatter(
+    x=[max_sharpe_df['risk']],
+    y=[max_sharpe_df['returns']],
+    mode='markers',
+    marker=dict(color='red', size=15, symbol='star'),
+    name=f'Max Sharpe: {max_sharpe_df["sharpe"]}'
+))
+    fig.update_layout(title = 'Efficient Frontier', xaxis_title = 'Annual Risk', yaxis_title = 'Annual Returns',  xaxis=dict(tickformat='.0%'),
+    yaxis=dict(tickformat='.0%'),
+    height=600,
+    template='plotly_white')
+    
+    fig.add_trace(go.Scatter(
+    x=[min_vol['risk']],
+    y=[min_vol['returns']],
+    mode='markers',
+    marker=dict(color='green', size=15, symbol='star'),
+    name='Min Volatility'
+))
+    return fig, max_sharpe_df, min_vol, tickers
 
 def stocks():
 
@@ -564,13 +633,7 @@ OUTPUT FORMAT (Exactly 4 sentences):
                         price_path ,p5, p50, p95 = sim(df)
                         days = list(range(30))
                         fig_sim = go.Figure()
-                        projected = sim(df)
-                        for l in range(1000):
-                             fig_sim.add_trace(go.Scatter(
-        y=price_path[:, l], mode='lines',
-        line=dict(color='rgba(100, 100, 100, 0.05)'),
-        showlegend=False
-    ))
+
 
                         
                         fig_sim.add_trace(go.Scatter(
@@ -772,8 +835,9 @@ def stock_analysis(uploaded):
 
 
         except Exception as e:
+            st.error('Something went wrong...')
             return f'Something went wrong...{e}'
-
+            
 def clear_chat(username):
     conn = create_sql()
     cursor = conn.cursor()

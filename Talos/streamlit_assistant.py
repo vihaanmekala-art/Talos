@@ -10,23 +10,17 @@ This software is proprietary. Resale or redistribution is strictly prohibited.
 import streamlit as st
 import random
 import streamlit_authenticator as stauth
-from streamlit_mic_recorder import speech_to_text
-from streamlit_util import check_time
 from streamlit_util import gemma_ai
 from streamlit_util import calculate
 from streamlit_util import stocks
-from streamlit_util import calendar
-from streamlit_util import system_stats
 from streamlit_util import stock_analysis
 from streamlit_util import pull_data
 from streamlit_util import initialize_db
 from streamlit_util import create_sql
-from streamlit_util import load_chat
-from streamlit_util import save_chat
-from streamlit_util import clear_chat
-from streamlit_util import stats
+from streamlit_util import port
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
+
 
 initialize_db()
 main_area = st.container()
@@ -117,12 +111,9 @@ if authentication_status:
     
     options = [
             "🏠 Home Page",
-            "🕧 Check Time",
-            "💡 Ask AI",
             "🧠 Calculate an Expression",
             "📈 Stock Analysis",
-            "🔔 Set a reminder",
-            "⚙️ System Stats",
+            "Portfolio Optimizer"
         ]
     
     if st.session_state['username'] == '123_12345678910':
@@ -205,50 +196,6 @@ if authentication_status:
                     ans = gemma_ai(f'Give me a random fun fact or tip in {chosen_topic}')
                     st.info(ans)
 
-        elif option == "🕧 Check Time":
-            st.info(check_time())
-
-        elif option == "💡 Ask AI":
-            reload = st.sidebar.button('Reset Chat')
-            perm_reload = st.sidebar.button('Hard Reset Chat')
-            
-            
-            if "messages" not in st.session_state:
-                st.session_state.messages = load_chat(st.session_state['username'])
-
-            st.write("Powered by Gemma 3-1B (quantized) via Ollama.")
-            typed = st.chat_input("Ask a question: ")
-            st.caption("Gemma can make mistakes.")
-            for message in reversed(st.session_state.messages):
-                with st.chat_message(message["role"]):
-                    st.markdown(message["content"])
-
-            voice = speech_to_text(
-                language="en",
-                start_prompt="Click to talk",
-                stop_prompt="Stop recording",
-                key="Speech",
-            )
-            user = voice if voice else typed
-            if user:
-                with st.chat_message('user'):
-                    st.markdown(user)
-
-                st.session_state.messages.append({"role": "user", "content": user})
-                save_chat(st.session_state['username'], 'user', user)
-                with st.chat_message('assistant'):
-                    with st.spinner('Thinking...'):
-                        answer = gemma_ai(user)
-                        st.markdown(answer)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-                save_chat(st.session_state['username'], 'assistant', answer)
-            if reload:
-                st.session_state.messages = []
-                st.rerun()
-            if perm_reload:
-                clear_chat(st.session_state['username'])
-                st.session_state.messages = []
-                st.rerun()
         elif option == "🧠 Calculate an Expression":
             st.write("This was made possible with the Sympy Library.")
             st.write("Format trig ratios as Sin(30) or Cos(85)")
@@ -273,17 +220,34 @@ if authentication_status:
                 
                 if st.session_state.get('stock', False):
                     stocks()
-            
-
-        elif option == "🔔 Set a reminder":
-            calendar()
-
-        elif option == "⚙️System Stats":
-            system_stats()
         else:
-            st.write(stats())
+            
+            tickers = st.text_input('Choose 2 stocks. Format as AAPL, NVDA.')
+            tickers = [t.strip().upper() for t in tickers.split(',')]
+            if st.button('Optimize'):
+                x = ['fig', 'max_sharpe', 'min_vol', 'result_df', 'weight', 'tickers']
+                fig, max_sharpe_df, min_vol, tickers = port(tickers)
 
+                col1a, col2a = st.columns(2)
+                with col1a:
+                    st.subheader('⭐ Max Sharpe Portfolio')
+                    st.metric('Expected Return', f"{max_sharpe_df['returns']:.2%}")
+                    st.metric('Expected Risk', f"{max_sharpe_df['risk']:.2%}")
+                    st.metric('Sharpe Ratio', f"{max_sharpe_df['sharpe']:.2f}")
+                    st.write('**Allocations:**')
+                    for ticker, w in zip(tickers, max_sharpe_df['Weight']):
+                        st.write(f"- {ticker}: {w:.1%}")
+                with col2a:
+                    st.subheader('🛡️ Min Volatility Portfolio')
+                    st.metric('Expected Return', f"{min_vol['returns']:.2%}")
+                    st.metric('Expected Risk', f"{min_vol['risk']:.2%}")
+                    st.metric('Sharpe Ratio', f"{min_vol['sharpe']:.2f}")
+                    st.write('**Allocations:**')
+                    for ticker, w in zip(tickers, min_vol['Weight']):
+                        st.write(f"- {ticker}: {w:.1%}")
 
+                st.plotly_chart(fig)
+# ⚖️
 elif authentication_status is False:
         st.error('Incorrect username/password')
         if st.button('Forgot My Password'):
