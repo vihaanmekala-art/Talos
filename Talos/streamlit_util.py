@@ -26,6 +26,51 @@ import numpy as np
 import requests
 import yfinance as yf
 
+def intr(ticker, growth_rate, discount_rate, terminal_growth_rate, years=5):
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.info
+        cash = stock.cashflow
+        try:
+            oper_cash = cash.loc['Operating Cash Flow'].iloc[0]
+            capex = cash.loc['Capital Expenditure'].iloc[0]
+            fcf = oper_cash + capex
+
+        except:
+            st.error('Could not retrieve Free Cash Flow data for this ticker.')
+            return None
+        if fcf <= 0:
+            st.warning(f'Free Cash Flow is negative (${fcf/1e9:.2f}B). DCF may not be meaningful for this stock.')
+        current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+        shares_outstanding = info.get('sharesOutstanding')
+        if not current_price or not shares_outstanding:
+            st.error('Could not retrive price.')
+            return None
+        proj = []
+        fcf_curr = fcf
+
+        for year in range(1, years+1):
+            fcf_proj = fcf_curr * (1 + growth_rate) ** year
+            pres_val = fcf_proj / (1 + discount_rate) ** year
+            proj.append({
+                'Year': f'Year {year}',
+                'Projected FCF ($B)': fcf_proj / 1e9,
+                'Present Value ($B)': pres_val / 1e9
+            })
+
+        df_proj = pd.DataFrame(proj)
+        final_fcf = fcf * (1+growth_rate) ** years
+        terminal_value = final_fcf * (1 + terminal_growth_rate) / (discount_rate - terminal_growth_rate)
+        terminal_value_pv = terminal_value / (1 + discount_rate) ** years
+        total_pv = df_proj['Present Value ($B)'].sum() * 1e9
+        intrinsic_value_total = total_pv + terminal_value_pv
+        intrinsic_value_per_share = intrinsic_value_total / shares_outstanding
+        terminal_value_pv = terminal_value_pv / 1e9
+        return intrinsic_value_per_share, current_price, df_proj, terminal_value_pv 
+    
+    except Exception as e:
+    
+        st.error(f'{e}')
 def grok(question, key):
 
     if not key:
@@ -181,61 +226,6 @@ def rsi(df, period = 14):
 
 
 
-def get_ollama():
-    path = shutil.which("ollama")
-    if path:
-        return path
-    system = platform.system()
-    home = Path.home()
-    if system == "Windows":
-        win_path = home / "AppData" / "Local" / "Programs" / "Ollama" / "ollama.exe"
-        if win_path.exists():
-            return str(win_path)
-    elif system == "Darwin":
-        mac_path = Path("/Applications/Ollama.app/Contents/Resources/ollama")
-        if mac_path.exists():
-            return str(mac_path)
-    elif system == "Linux":
-        linux_paths = ["/usr/local/bin/ollama", "/usr/bin/ollama", "/bin/ollama"]
-        for path in linux_paths:
-            if Path(path).exists():
-                return path
-    return None
-
-
-
-ollama_path = get_ollama()
-if ollama_path is None:
-    st.error('Ollama not found. Please install it.')
-    st.stop()
-
-
-def check_time():
-    return f"The time is {time.strftime('%H:%M:%S')}"
-
-
-def gemma_ai(question):
-    question = question.strip()
-    the_time = time.strftime("%Y-%m-%d %H:%M:%S")
-    prompt = (
-        "Give a clear, concise answer in 5–8 sentences. "
-        "Focus on key points and avoid unnecessary detail.\n\n"
-        f"The current time is {the_time}"
-        f"Question: {question}"
-    )
-    try:
-        result = subprocess.run(
-            [ollama_path, "run", "gemma3:1b", prompt],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        if result.returncode != 0:
-            return f"Error: {result.returncode}"
-        return result.stdout.strip()
-    except Exception as e:
-        return f"Something went wrong...{e}"
-
 @st.cache_data(ttl=3600)
 def calculate(question):
     question = question.lower().strip()
@@ -359,7 +349,7 @@ def port(tickers, num_port=3000):
 
 
     fig.add_trace(go.Scatter(x=result_df['risk'], y=result_df['returns'], mode = 'markers', marker = dict(
-        color=result_df['sharpe'],
+        color=result_df['sharpe'], 
         colorscale='Viridis',
         showscale=True,
         colorbar=dict(title='Sharpe Ratio'),
@@ -554,7 +544,7 @@ def stocks():
                     st.metric('P/B Ratio', pb_ratio)
                     st.metric('Profit Margin', profit_margin)
                     try:
-                        peg = float(pe_ratio) / float(Cagr)
+                        peg = float(pe_ratio) / float(stock_cagr)
                         peg_dis = peg
                         st.metric('PEG Ratio', peg_dis)
                     except Exception:
@@ -696,55 +686,6 @@ OUTPUT FORMAT (Exactly 4 sentences):
 
 
 
-def calendar():
-
-    if "reminders" not in st.session_state:
-        st.session_state.reminders = []
-    date = st.date_input("Input a date.")
-    reminder = st.text_input("What are you setting a reminder for?")
-
-    if st.button("Save Reminder"):
-        if reminder:
-            st.session_state.reminders.append({"date": date, "reminder": reminder})
-            st.write(f"Saved {reminder} on {date}")
-        else:
-            st.warning("Provide a reminder.")
-
-    st.subheader("Your Reminders")
-    for item in st.session_state.reminders:
-        st.write(f"🔔 {item['reminder']} on {item['date']}")
-
-
-
-
-
-@st.fragment(run_every=1)
-def system_stats():
-    st.subheader("Hardware Monitor")
-
-    col1, col2, col3 = st.columns(3)
-    cpu_placeholder = col1.empty()
-    ram_placeholder = col2.empty()
-    freq_placeholder = col3.empty()
-
-    cpu = psutil.cpu_percent()
-    ram = psutil.virtual_memory().percent
-    freq = psutil.cpu_freq().current
-
-    with cpu_placeholder.container(border=True):
-        st.plotly_chart(gauge(cpu, 'CPU', 'green' if cpu < 70 else 'red'), use_container_width=True)
-
-    with ram_placeholder.container(border=True):
-        st.plotly_chart(gauge(ram, 'RAM', 'blue'), use_container_width=True)
-
-    with freq_placeholder.container(border=True):
-        st.plotly_chart(gauge(freq, 'CPU Frequency', 'yellow'), use_container_width=True)
-
-    time.sleep(0.5)
-
-
-
-
 def create_sql():
     conn = sqlite3.connect('talos.db', check_same_thread=False)
     return conn
@@ -790,16 +731,6 @@ def save_chat(username, role, content):
     conn.close()
     
 
-def load_chat(username):
-    conn = create_sql()
-    cursor = conn.cursor()
-    cursor.execute('SELECT role, content FROM chat_history WHERE username = ? ORDER BY timestamp ASC', (username, ))
-    rows = cursor.fetchall()
-    conn.close()
-    hist = []
-    for row in rows:
-        hist.append({'role': row[0], 'content':row[1]})
-    return hist    
 
 
 def stock_analysis(uploaded):
@@ -837,12 +768,7 @@ def stock_analysis(uploaded):
             st.error('Something went wrong...')
             return f'Something went wrong...{e}'
             
-def clear_chat(username):
-    conn = create_sql()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM chat_history WHERE username = ?', (username,))
-    conn.commit()
-    conn.close()
+
 def stats():
     conn = create_sql()
     cursor = conn.cursor()

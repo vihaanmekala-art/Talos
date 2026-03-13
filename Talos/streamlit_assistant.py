@@ -10,7 +10,6 @@ This software is proprietary. Resale or redistribution is strictly prohibited.
 import streamlit as st
 import random
 import streamlit_authenticator as stauth
-from streamlit_util import gemma_ai
 from streamlit_util import calculate
 from streamlit_util import stocks
 from streamlit_util import stock_analysis
@@ -18,6 +17,7 @@ from streamlit_util import pull_data
 from streamlit_util import initialize_db
 from streamlit_util import create_sql
 from streamlit_util import port
+from streamlit_util import intr
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
@@ -113,7 +113,8 @@ if authentication_status:
             "🏠 Home Page",
             "🧠 Calculate an Expression",
             "📈 Stock Analysis",
-            "Portfolio Optimizer"
+            "⚖️ Portfolio Optimizer",
+            '📊 Intrinsic Value'
         ]
     
     if st.session_state['username'] == '123_12345678910':
@@ -190,11 +191,7 @@ if authentication_status:
             random.shuffle(tips)
             st.write(tips[-1])
             if st.button('Generate a fact from AI'):
-                with st.spinner('Thinking...'):
-                    topics = ["Space", "Coding", "Deep Sea", "History", "Robots", "Animals"]
-                    chosen_topic = random.choice(topics)
-                    ans = gemma_ai(f'Give me a random fun fact or tip in {chosen_topic}')
-                    st.info(ans)
+                st.write(tips[-1])
 
         elif option == "🧠 Calculate an Expression":
             st.write("This was made possible with the Sympy Library.")
@@ -220,7 +217,7 @@ if authentication_status:
                 
                 if st.session_state.get('stock', False):
                     stocks()
-        else:
+        elif option == '⚖️ Portfolio Optimizer':
             
             tickers = st.text_input('Choose 2 stocks. Format as AAPL, NVDA.')
             tickers = [t.strip().upper() for t in tickers.split(',')]
@@ -247,18 +244,57 @@ if authentication_status:
                         st.write(f"- {ticker}: {w:.1%}")
 
                 st.plotly_chart(fig)
-# ⚖️
+                st.warning('For educational purposes only. Not financial advice.')
+        else: 
+            ticker = st.text_input('Type in your stock ticker.')
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                growth_rate = st.slider(
+                    'FCF Growth Rate (%)',
+                    min_value=0,
+                    max_value=50,
+                    value=8, 
+                    step=1
+                ) / 100 
+
+            with col2:
+                discount_rate = st.slider(
+                    'Discount Rate (%)',
+                    min_value=1,
+                    max_value=20,
+                    value=10,
+                    step=1
+                ) / 100
+
+            with col3:
+                terminal_growth = st.slider(
+                    'Terminal Growth Rate (%)',
+                    min_value=0,
+                    max_value=10,
+                    value=3,
+                    step=1
+                ) / 100
+            result = intr(ticker, growth_rate, discount_rate, terminal_growth)
+            if result:
+                intrinsic_value_per_share, current_price, df_proj, terminal_value_pv = result
+                st.metric('Current Price', value=current_price)
+                st.metric('Intrinsic Value', value=intrinsic_value_per_share)
+                st.metric('Terminal Value', value=f'{terminal_value_pv:.2f}B')
+                st.dataframe(df_proj)
+                st.warning('For educational purposes only. Not financial advice.')
+
 elif authentication_status is False:
-        st.error('Incorrect username/password')
-        if st.button('Forgot My Password'):
-            try:
-                temp_username, temp_email, temp_password = authenticator.forgot_password(location='main')
-                if temp_password:
-                    st.success(f'New password was generated for {temp_username}')
-                    st.success(f'The password is {temp_password}')
-                elif not temp_password:
-                    st.error('Username not found...')
-            except Exception as e:
-                st.error(f'Something went wrong...{e}') 
+    st.error('Incorrect username/password')
+    if st.button('Forgot My Password'):
+        try:
+            temp_username, temp_email, temp_password = authenticator.forgot_password(location='main')
+            if temp_password:
+                st.success(f'New password was generated for {temp_username}')
+                st.success(f'The password is {temp_password}')
+            elif not temp_password:
+                st.error('Username not found...')
+        except Exception as e:
+            st.error(f'Something went wrong...{e}') 
 elif authentication_status is None:
     st.warning('Please provide a username/password.')
