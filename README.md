@@ -76,6 +76,7 @@ git clone https://github.com/vihaanmekala-art/Talos.git
 cd Talos
 pip install -r requirements.txt
 streamlit run streamlit_app.py
+```
 
 ## 🚀 Try Talos
 Try Talos here: [https://talos-production.up.railway.app/] 
