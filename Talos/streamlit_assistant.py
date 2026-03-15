@@ -282,6 +282,15 @@ if authentication_status:
                 st.metric('Intrinsic Value', value=intrinsic_value_per_share)
                 st.metric('Terminal Value', value=f'{terminal_value_pv:.2f}B')
                 st.dataframe(df_proj)
+                if intrinsic_value_per_share > current_price * 1.15:
+                        verdict = '🟢 Undervalued'
+                elif intrinsic_value_per_share < current_price * 0.85:
+                    verdict = '🔴 Overvalued'
+                else:
+                    verdict = '🟡 Fairly Valued'
+                
+                st.subheader(verdict)
+                    
                 st.warning('For educational purposes only. Not financial advice.')
 
 elif authentication_status is False:
