@@ -64,7 +64,7 @@ def intr(ticker, growth_rate, discount_rate, terminal_growth_rate, years=5):
     except Exception as e:
     
         st.error(f'{e}')
-def grok(question, key):
+def groq(question, key):
 
     if not key:
         return "Error: API Key not found in environment variables."
@@ -302,6 +302,29 @@ def fetch_alpha(symbol, api_key, premium=False):
 
     return df
 
+def get_macro(series_id, fred_key):
+    try:
+        url = 'https://api.stlouisfed.org/fred/series/observations'
+        params = {
+        'series_id': series_id,
+        'api_key': fred_key,
+        'file_type': 'json',
+        'sort_order': 'desc',
+        'limit': 10}
+        response = requests.get(url=url, params=params)
+        data = response.json()
+        obsv = data['observations']
+        real_data = obsv[0]['value']
+        return real_data
+    except requests.exceptions.ConnectionError:
+        st.error('No internet.')
+        return None
+    except requests.exceptions.Timeout:
+        st.error('Server took to long to respond.')
+        return None
+    except AttributeError:
+        st.error('Something went wrong...')
+        return None
 def port(tickers, num_port=3000):
     prices = pd.DataFrame()
     for ticker in tickers:
@@ -376,7 +399,7 @@ def stocks():
     try:
         
         alpha_key = st.text_input('Type in your API key from Alpha Vantage (free/paid).', type='password')
-        grok_key = st.text_input('Type in your API key from Grok (free/paid).', type='password')
+        groq_key = st.text_input('Type in your API key from Groq (free/paid).', type='password')
         if not alpha_key:
             st.warning("You must enter your own API key.")
             st.info("NOTE: If you are using a free key, you may have to click the 'Stock Analysis' button twice.")
@@ -566,7 +589,7 @@ def stocks():
                 
                     
                     st.subheader('What the AI says [Beta]')
-                    st.info(grok(
+                    st.info(groq(
                             f"""
                             You are a Senior Equity Research Analyst. Your task is to provide a high-density, 4-sentence synthesis of market data for institutional clients.
                             Round all numbers to the nearest tenth. 
@@ -606,7 +629,7 @@ OUTPUT FORMAT (Exactly 4 sentences):
 3. VALUATION: Contextualize CAGR against P/E, P/B, or P/S; if data is missing, flag the "valuation blind spot."
 4. THE VERDICT: A final risk-adjusted recommendation (e.g., 'Avoid,' 'Accumulate,' or 'Neutral') based on Volatility and contradictions.
                             """
-                        , grok_key))
+                        , groq_key))
                     
                     plot_df = df.dropna(subset=['MACD', 'Signal_Line', 'MACD_Histogram'])
                     if not plot_df.empty:
@@ -693,14 +716,6 @@ def initialize_db():
             password_hash TEXT
         )
     ''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS chat_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            role TEXT,
-            content TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(username) REFERENCES users(username)
-        )''')
     conn.commit()
     conn.close()
 def pull_data():
@@ -776,3 +791,4 @@ def stats():
     rows = cursor.fetchall()
     conn.close()
     return rows
+

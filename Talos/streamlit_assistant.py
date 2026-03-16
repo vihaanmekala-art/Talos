@@ -114,7 +114,8 @@ if authentication_status:
             "🧠 Calculate an Expression",
             "📈 Stock Analysis",
             "⚖️ Portfolio Optimizer",
-            '📊 Intrinsic Value'
+            '📊 Intrinsic Value',
+            '🌐 Macro Information'
         ]
     
     if st.session_state['username'] == '123_12345678910':
