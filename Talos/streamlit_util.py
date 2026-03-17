@@ -19,6 +19,8 @@ import plotly.graph_objects as go
 import numpy as np
 import yfinance as yf
 
+fred_key = st.secrets['FRED_KEY']
+
 def intr(ticker, growth_rate, discount_rate, terminal_growth_rate, years=5):
     try:
         stock = yf.Ticker(ticker)
@@ -135,7 +137,71 @@ def atr(df, period=14):
 
     atr = tr.rolling(window=period).mean()
     return atr.iloc[-1]
-def sharpness(df, risk_free = 0.0369):
+
+
+def get_macro(series_id, fred_key):
+    try:
+        url = 'https://api.stlouisfed.org/fred/series/observations'
+        params = {
+        'series_id': series_id,
+        'api_key': fred_key,
+        'file_type': 'json',
+        'sort_order': 'desc',
+        'limit': 10}
+        response = requests.get(url=url, params=params)
+        data = response.json()
+        obsv = data['observations']
+        real_data = obsv[0]['value']
+        if real_data == '.':
+            return None
+        return real_data
+    except requests.exceptions.ConnectionError:
+        st.error('No internet.')
+        return None
+    except requests.exceptions.Timeout:
+        st.error('Server took to long to respond.')
+        return None
+    except AttributeError:
+        st.error(f'Something went wrong...{e}')
+        return None
+    except Exception as e:
+        st.error(f'Something went wrong...{e}')
+        return None
+    
+def get_risk_free(fred_key):
+    risk_free = get_macro('DGS10', fred_key)
+    try:
+        risk_free = float(risk_free) / 100
+        return risk_free
+    except (ValueError, TypeError):
+        return 0.0422
+risk_free = get_risk_free(fred_key)
+
+def show_macro():
+    try:
+        gdp_growth = get_macro('A191RL1Q225SBEA', fred_key)
+        inflation = get_macro('CPIAUCSL', fred_key)
+        fed_funds = get_macro('FEDFUNDS', fred_key)
+        unemployed = get_macro('UNRATE', fred_key)
+        tres_yield = get_macro('DGS10', fred_key)
+        sp500 = get_macro('SP500', fred_key)
+        st.subheader('United States ')
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric('GDP Growth', value=f'{gdp_growth}%')
+        with col2:
+            st.metric('Inflation (CPI)', value=f'{inflation}')
+        with col3:
+            st.metric('Fed Interest Rates', value=f'{fed_funds}%')
+        with col1:
+            st.metric('Unemployment Rate', value=f'{unemployed}')
+        with col2:
+            st.metric('10 Year Treasury Yield', value=f'{tres_yield}%')
+        with col3:
+            st.metric('S&P 500 Price', value=f'${sp500}')
+    except:
+        pass
+def sharpness(df, risk_free):
     returns = df['Close'].dropna().pct_change().dropna()
     daily_rf = (1 + risk_free) ** (1/252) - 1
     mean = returns.mean()
@@ -302,29 +368,6 @@ def fetch_alpha(symbol, api_key, premium=False):
 
     return df
 
-def get_macro(series_id, fred_key):
-    try:
-        url = 'https://api.stlouisfed.org/fred/series/observations'
-        params = {
-        'series_id': series_id,
-        'api_key': fred_key,
-        'file_type': 'json',
-        'sort_order': 'desc',
-        'limit': 10}
-        response = requests.get(url=url, params=params)
-        data = response.json()
-        obsv = data['observations']
-        real_data = obsv[0]['value']
-        return real_data
-    except requests.exceptions.ConnectionError:
-        st.error('No internet.')
-        return None
-    except requests.exceptions.Timeout:
-        st.error('Server took to long to respond.')
-        return None
-    except AttributeError:
-        st.error('Something went wrong...')
-        return None
 def port(tickers, num_port=3000):
     prices = pd.DataFrame()
     for ticker in tickers:
@@ -343,7 +386,7 @@ def port(tickers, num_port=3000):
     weight = []
 
     assets = len(tickers)
-    risk_free = 0.0369
+    risk_free = get_risk_free(fred_key)
     gene = np.random.default_rng()
     for _ in range(num_port):
        

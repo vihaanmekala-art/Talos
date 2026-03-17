@@ -18,6 +18,7 @@ from streamlit_util import initialize_db
 from streamlit_util import create_sql
 from streamlit_util import port
 from streamlit_util import intr
+from streamlit_util import show_macro
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
@@ -246,7 +247,7 @@ if authentication_status:
 
                 st.plotly_chart(fig)
                 st.warning('For educational purposes only. Not financial advice.')
-        else: 
+        elif option == '📊 Intrinsic Value': 
             ticker = st.text_input('Type in your stock ticker.')
             col1, col2, col3 = st.columns(3)
 
@@ -293,6 +294,8 @@ if authentication_status:
                 st.subheader(verdict)
                     
                 st.warning('For educational purposes only. Not financial advice.')
+        else:
+            show_macro()
 
 elif authentication_status is False:
     st.error('Incorrect username/password')
