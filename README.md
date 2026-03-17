@@ -65,7 +65,7 @@ with visualizations to help interpret results.
 ---
 
 ## Adoption
-In the past 14 days, this project has been cloned by **50+ unique users**, indicating
+In the past 14 days, this project has been cloned by **120+ unique users**, indicating
 real-world interest for educational and analytical use.
 
 ---
