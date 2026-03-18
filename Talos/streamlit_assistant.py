@@ -21,7 +21,7 @@ from streamlit_util import intr
 from streamlit_util import show_macro
 from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
-
+import yfinance as yf
 
 initialize_db()
 main_area = st.container()
@@ -119,8 +119,7 @@ if authentication_status:
             '🌐 Macro Information'
         ]
     
-    if st.session_state['username'] == '123_12345678910':
-        options.append('🛡️ User Information')
+
     
     st.sidebar.title("Talos v.1.1.0")
     st.title("Talos v.1.1.0")
@@ -294,9 +293,23 @@ if authentication_status:
                 st.subheader(verdict)
                     
                 st.warning('For educational purposes only. Not financial advice.')
-        else:
+        elif option == '🌐 Macro Information':
             show_macro()
-
+        
+        elif option == '📊 Options Chain':
+            stock = st.text_input('Choose a Stock')
+            if stock:
+                stock = yf.Ticker(stock)
+                expirations = stock.options
+                choice = st.selectbox('Chose an Expiry Date', options=expirations)
+                chain = stock.option_chain(choice)
+                calls = chain.calls
+                puts = chain.puts
+                important_cols = ['strike', 'lastPrice', 'bid', 'ask', 'volume', 'openInterest', 'impliedVolatility']
+                st.subheader('📈 Call Options')
+                st.dataframe(calls[important_cols])
+                st.subheader('📉 Put Options')
+                st.dataframe(puts[important_cols])
 elif authentication_status is False:
     st.error('Incorrect username/password')
     if st.button('Forgot My Password'):
