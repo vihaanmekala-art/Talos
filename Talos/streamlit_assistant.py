@@ -116,7 +116,8 @@ if authentication_status:
             "📈 Stock Analysis",
             "⚖️ Portfolio Optimizer",
             '📊 Intrinsic Value',
-            '🌐 Macro Information'
+            '🌐 Macro Information',
+            '📊 Options Chain'
         ]
     
 
