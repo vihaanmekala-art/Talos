@@ -279,7 +279,8 @@ with st.spinner('Setting Up...'):
                         value=3,
                         step=1
                     ) / 100
-                result = intr(ticker, growth_rate, discount_rate, terminal_growth)
+                if st.button('Calculate'):
+                    result = intr(ticker, growth_rate, discount_rate, terminal_growth)
                 if result:
                     intrinsic_value_per_share, current_price, df_proj, terminal_value_pv = result
                     st.metric('Current Price', value=current_price)
