@@ -208,19 +208,18 @@ with st.spinner('Setting Up...'):
 
                 st.success(answer)
             elif option == "📈 Stock Analysis":
-                st.session_state['analysis'] = True
-                if st.session_state.get('analysis') == True:
-                    file = st.file_uploader('Choose a JSON or CSV file.', type = ['json', 'csv'])
-                    if file is not None:
-                        
-                        stock_analysis(file)
-                    else:
-                        st.info('Or you can use the built-in stock analysis function!')
-                        if st.button('Type stock ticker'):
-                            st.session_state['stock'] = True
-                        
-                        if st.session_state.get('stock', False):
-                            stocks()
+                
+                
+                file = st.file_uploader('Choose a JSON or CSV file.', type = ['json', 'csv'])
+                if file is not None:
+                    stock_analysis(file)
+                else:
+                    st.info('Or you can use the built-in stock analysis function!')
+                    if st.button('Type stock ticker'):
+                        st.session_state['stock'] = True
+                    
+                    if st.session_state.get('stock', False):
+                        stocks()
             elif option == '⚖️ Portfolio Optimizer':
                 
                 tickers = st.text_input('Choose 2 stocks. Format as AAPL, NVDA.')
