@@ -806,7 +806,7 @@ def initialize_db():
 
 @st.cache_data(ttl=61)
 def pull_data():
-    conn = create_sql()
+    conn = sqlite3.connect('talos.db')
     cursor = conn.cursor()
     cursor.execute("SELECT username, name, email, password_hash FROM users")
     rows = cursor.fetchall()
