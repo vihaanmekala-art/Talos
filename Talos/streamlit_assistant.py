@@ -23,7 +23,7 @@ from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 with st.spinner('Setting Up...'):
     initialize_db()
-    main_area = st.container()
+    main_area = st.empty()
 
 
     credentials = pull_data()   
@@ -179,7 +179,7 @@ with st.spinner('Setting Up...'):
 
 
 
-        with main_area:
+        with main_area.container():
             if option == '🏠 Home Page':
                 col2,col3 = st.columns(2)
                 with col2:

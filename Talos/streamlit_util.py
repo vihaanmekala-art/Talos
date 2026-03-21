@@ -129,7 +129,7 @@ def atr(df, period=14):
     atr = tr.rolling(window=period).mean()
     return atr.iloc[-1]
 
-@st.cache_data(ttl=432000, persist='disk')
+
 def get_macro(series_id, fred_key):
     try:
         url = "https://api.stlouisfed.org/fred/series/observations"
