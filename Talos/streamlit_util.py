@@ -784,7 +784,7 @@ def stocks():
     except PermissionError:
         return "You do not have permissions for this file."
 
-@st.cache_resource
+
 def create_sql():
     conn = sqlite3.connect("talos.db", check_same_thread=False)
     return conn
