@@ -21,7 +21,6 @@ import yfinance as yf
 
 fred_key = st.secrets["FRED_KEY"]
 
-@st.cache_data(ttl=3600)
 def intr(ticker, growth_rate, discount_rate, terminal_growth_rate, years=5):
     try:
         
@@ -250,7 +249,7 @@ def macd(df):
     df["MACD_Histogram"] = df["MACD"] - df["Signal_Line"]
     return df
 
-@st.cache_data(ttl=3600, persist='disk')
+
 def rsi(df, period=14):
     df = df.dropna()
     df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
@@ -401,7 +400,7 @@ def port(tickers, num_port=3000):
     )
     return fig, max_sharpe_df, min_vol, tickers
 
-@st.cache_data(hash_funcs={pd.DataFrame: lambda df: df.to_csv(index=False)})
+
 def compute(df):
     df = rsi(df)
     df = macd(df)
