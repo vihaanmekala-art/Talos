@@ -105,81 +105,82 @@ with st.spinner('Setting Up...'):
 
 
     if authentication_status:
-        name = st.session_state.get('name','user')
-        if st.session_state.get('username') == 'demo_123':
-            pass
-        st.sidebar.write(f'Welcome back, {name}')
-        authenticator.logout(button_name='Logout', location='sidebar')
-        
-        options = [
-                "🏠 Home Page",
-                "🧠 Calculate an Expression",
-                "📈 Stock Analysis",
-                "⚖️ Portfolio Optimizer",
-                '📊 Intrinsic Value',
-                '🌐 Macro Information',
-                '📊 Options Chain'
-            ]
-        
-
-        
-        st.sidebar.title("Talos v.1.1.0")
-        st.title("Talos v.1.1.0")
-        option = st.sidebar.radio(
-            "Options",
-            options=options,
-            label_visibility='collapsed'
-        )
-        theme = st.sidebar.radio('Select a Theme',['Light','Dark [Beta]'])
-        if theme == 'Light':
-            st.markdown("""
-                <style>
-                .stApp {
-                    background-color: #FFFFFF;
-                    color: #000000;
-                }
-                [data-testid="stSidebar"] {
-                    background-color: #F0F2F6;
-                }
-                </style>
-                """, unsafe_allow_html=True)
-        else:
-            st.sidebar.caption('Some elements may not be seen.')
-            st.markdown("""
-            <style>
-            .stApp {
-                background-color: #0E1117;
-            }
-
-            .stApp, .stMarkdown, .stText, .stMetric, .stSubheader, 
-            .stHeader, .stCaption, p, div, span, label {
-                color: #FFFFFF !important;
-            }
-
-            [data-testid="stSidebar"] {
-                background-color: #262730;
-            }
-
-            /* Fix metrics */
-            [data-testid="stMetricValue"] {
-                color: #FFFFFF !important;
-            }
-
-            /* Fix input fields */
-            input, textarea {
-                color: #FFFFFF !important;
-                background-color: #262730 !important;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-
-
-        st.divider()
 
 
 
 
         with main_area.container():
+            name = st.session_state.get('name','user')
+            if st.session_state.get('username') == 'demo_123':
+                pass
+            st.sidebar.write(f'Welcome back, {name}')
+            authenticator.logout(button_name='Logout', location='sidebar')
+            
+            options = [
+                    "🏠 Home Page",
+                    "🧠 Calculate an Expression",
+                    "📈 Stock Analysis",
+                    "⚖️ Portfolio Optimizer",
+                    '📊 Intrinsic Value',
+                    '🌐 Macro Information',
+                    '📊 Options Chain'
+                ]
+            
+
+            
+            st.sidebar.title("Talos v.1.1.0")
+            st.title("Talos v.1.1.0")
+            option = st.sidebar.radio(
+                "Options",
+                options=options,
+                label_visibility='collapsed'
+            )
+            theme = st.sidebar.radio('Select a Theme',['Light','Dark [Beta]'])
+            if theme == 'Light':
+                st.markdown("""
+                    <style>
+                    .stApp {
+                        background-color: #FFFFFF;
+                        color: #000000;
+                    }
+                    [data-testid="stSidebar"] {
+                        background-color: #F0F2F6;
+                    }
+                    </style>
+                    """, unsafe_allow_html=True)
+            else:
+                st.sidebar.caption('Some elements may not be seen.')
+                st.markdown("""
+                <style>
+                .stApp {
+                    background-color: #0E1117;
+                }
+
+                .stApp, .stMarkdown, .stText, .stMetric, .stSubheader, 
+                .stHeader, .stCaption, p, div, span, label {
+                    color: #FFFFFF !important;
+                }
+
+                [data-testid="stSidebar"] {
+                    background-color: #262730;
+                }
+
+                /* Fix metrics */
+                [data-testid="stMetricValue"] {
+                    color: #FFFFFF !important;
+                }
+
+                /* Fix input fields */
+                input, textarea {
+                    color: #FFFFFF !important;
+                    background-color: #262730 !important;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+
+
+            st.divider()
+
             if option == '🏠 Home Page':
                 col2,col3 = st.columns(2)
                 with col2:
