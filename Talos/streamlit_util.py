@@ -803,14 +803,12 @@ def initialize_db():
     """)
     conn.commit()
 
-@st.cache_data(ttl=61)
+
 def pull_data():
-    conn = sqlite3.connect('talos.db')
+    conn = create_sql()
     cursor = conn.cursor()
     cursor.execute("SELECT username, name, email, password_hash FROM users")
     rows = cursor.fetchall()
-    conn.commit()
-    conn.close()
     creds = {"usernames": {}}
     for row in rows:
         username, name, email, password_hash = row
