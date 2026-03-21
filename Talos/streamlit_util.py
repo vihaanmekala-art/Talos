@@ -401,12 +401,6 @@ def port(tickers, num_port=3000):
     return fig, max_sharpe_df, min_vol, tickers
 
 
-def compute(df):
-    df = rsi(df)
-    df = macd(df)
-    df = bollinger(df)
-    df = wrap(df)
-    return df.loc[:, ~df.columns.duplicated()]
 
 def stocks():
     try:
@@ -431,7 +425,11 @@ def stocks():
                 if df.empty:
                     st.error("Invalid ticker or API issue.")
                     st.stop()
-                df = compute(df)
+                df = rsi(df)
+                df = macd(df)
+                df = bollinger(df)
+                df = wrap(df)
+                df = df.loc[:, ~df.columns.duplicated()]
                 current_macd = df["MACD"].iloc[-1]
                 sig_macd = df["Signal_Line"].iloc[-1]
                 crossover = "Bullish" if current_macd > sig_macd else "Bearish"
