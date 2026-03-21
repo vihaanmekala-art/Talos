@@ -802,7 +802,6 @@ def initialize_db():
         )
     """)
     conn.commit()
-    conn.close()
 
 @st.cache_data(ttl=61)
 def pull_data():
