@@ -23,6 +23,7 @@ from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 with st.spinner('Setting Up...'):
     initialize_db()
+    st.session_state['analysis'] = False
     main_area = st.empty()
 
 
@@ -180,7 +181,8 @@ with st.spinner('Setting Up...'):
 
 
             st.divider()
-
+            if option != '📈 Stock Analysis':
+                st.session_state['stock'] = False
             if option == '🏠 Home Page':
                 col2,col3 = st.columns(2)
                 with col2:
@@ -206,18 +208,19 @@ with st.spinner('Setting Up...'):
 
                 st.success(answer)
             elif option == "📈 Stock Analysis":
-                
-                file = st.file_uploader('Choose a JSON or CSV file.', type = ['json', 'csv'])
-                if file is not None:
-                    
-                    stock_analysis(file)
-                else:
-                    st.info('Or you can use the built-in stock analysis function!')
-                    if st.button('Type stock ticker'):
-                        st.session_state['stock'] = True
-                    
-                    if st.session_state.get('stock', False):
-                        stocks()
+                st.session_state['analysis'] = True
+                if st.session_state.get('analysis') == True:
+                    file = st.file_uploader('Choose a JSON or CSV file.', type = ['json', 'csv'])
+                    if file is not None:
+                        
+                        stock_analysis(file)
+                    else:
+                        st.info('Or you can use the built-in stock analysis function!')
+                        if st.button('Type stock ticker'):
+                            st.session_state['stock'] = True
+                        
+                        if st.session_state.get('stock', False):
+                            stocks()
             elif option == '⚖️ Portfolio Optimizer':
                 
                 tickers = st.text_input('Choose 2 stocks. Format as AAPL, NVDA.')
@@ -303,7 +306,7 @@ with st.spinner('Setting Up...'):
                 stock = st.text_input('Choose a Stock. Format as NVDA.')
                 if stock:
                     ticker = yf.Ticker(stock)
-                    price = yf.download()
+                    price = yf.download(stock)
                     expirations = ticker.options
                     choice = st.selectbox('Choose an Expiry Date', options=expirations)
                     st.metric('Current Price', value=f'${price}')
