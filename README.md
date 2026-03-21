@@ -41,11 +41,6 @@ with visualizations to help interpret results.
 
 ---
 
-## Example Output
-*(Add screenshots or a GIF of the Streamlit app here)*
-
----
-
 ## Assumptions & Limitations
 - Returns are estimated from historical data and are not predictive
 - Mean–variance optimization assumes stable correlations and normally distributed returns
