@@ -160,7 +160,7 @@ def get_macro(series_id, fred_key):
         st.error(f"Something went wrong...{e}")
         return None
 
-@st.cache_data(ttl=604800, persist='disk')
+@st.cache_data(persist='disk')
 def get_risk_free(fred_key):
     risk_free = get_macro("DGS10", fred_key)
     try:
@@ -756,8 +756,8 @@ def stocks():
                         showlegend=True,
                     )
 
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.plotly_chart(fig_sim, use_container_width=True)
+                    st.plotly_chart(fig, width='stretch')
+                    st.plotly_chart(fig_sim,width='stretch')
 
                 
 
