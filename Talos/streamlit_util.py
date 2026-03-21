@@ -8,12 +8,11 @@ This software is proprietary. Resale or redistribution is strictly prohibited.
 Users must have their own Alpha Vantage account and obey Alpha Vantage’s terms.
 """
 
-import io
+
 import requests
 import sympy as sp
 import streamlit as st
 import pandas as pd
-from matplotlib.backends.backend_pdf import PdfPages
 from plotly.subplots import make_subplots
 import sqlite3
 import plotly.graph_objects as go
@@ -22,9 +21,10 @@ import yfinance as yf
 
 fred_key = st.secrets["FRED_KEY"]
 
-
+@st.cache_data(ttl=3600)
 def intr(ticker, growth_rate, discount_rate, terminal_growth_rate, years=5):
     try:
+        
         stock = yf.Ticker(ticker)
         info = stock.info
         cash = stock.cashflow
@@ -102,27 +102,6 @@ def groq(question, key):
         return f"API Error {response.status_code}: {data.get('error', {}).get('message', 'Unknown error')}"
 
 
-def sent(symbol, key):
-    url = "https://www.alphavantage.co/query"
-    param = {"function": "NEWS_SENTIMENT", "tickers": symbol, "apikey": key, "limit": 5}
-    response = requests.get(url, params=param)
-    data = response.json()
-    print(data)
-
-    if "feed" not in data:
-        return []
-    results = []
-    for a in data["feed"]:
-        results.append(
-            {
-                "title": a["title"],
-                "sentiment": a["overall_sentiment_label"],
-                "score": a["overall_sentiment_score"],
-            }
-        )
-    return results
-
-
 def wrap(df):
     df = df.copy()
     try:
@@ -151,7 +130,7 @@ def atr(df, period=14):
     atr = tr.rolling(window=period).mean()
     return atr.iloc[-1]
 
-
+@st.cache_data(ttl=432000, persist='disk')
 def get_macro(series_id, fred_key):
     try:
         url = "https://api.stlouisfed.org/fred/series/observations"
@@ -182,7 +161,7 @@ def get_macro(series_id, fred_key):
         st.error(f"Something went wrong...{e}")
         return None
 
-
+@st.cache_data(ttl=604800, persist='disk')
 def get_risk_free(fred_key):
     risk_free = get_macro("DGS10", fred_key)
     try:
@@ -192,7 +171,7 @@ def get_risk_free(fred_key):
         return 0.0422
 
 
-risk_free = get_risk_free(fred_key)
+
 
 
 def show_macro():
@@ -253,31 +232,6 @@ def sim(df):
     return price_path, p5, p50, p95
 
 
-def gauge(value, title, color="green"):
-    fig = go.Figure(
-        go.Indicator(
-            mode="gauge+number",
-            value=value,
-            title={"text": title},
-            gauge={
-                "axis": {"range": [None, 100]},
-                "bar": {"color": color},
-                "steps": [
-                    {"range": [0, 50], "color": "lightgray"},
-                    {"range": [50, 80], "color": "gray"},
-                    {"range": [80, 100], "color": "darkred"},
-                ],
-                "threshold": {
-                    "line": {"color": "red", "width": 4},
-                    "thickness": 0.75,
-                    "value": 90,
-                },
-            },
-        )
-    )
-    fig.update_layout(height=250, margin=dict(l=20, r=20, t=50, b=20))
-    return fig
-
 
 def bollinger(df, window=20, num_std=2):
 
@@ -296,7 +250,7 @@ def macd(df):
     df["MACD_Histogram"] = df["MACD"] - df["Signal_Line"]
     return df
 
-
+@st.cache_data(ttl=3600, persist='disk')
 def rsi(df, period=14):
     df = df.dropna()
     df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
@@ -347,62 +301,20 @@ def calculate(question):
         return f"Something went wrong... {e}"
 
 
-@st.cache_data(ttl=30)
-def fetch_alpha(symbol, api_key, premium=False):
-    url = "https://www.alphavantage.co/query"
-
-    params = {
-        "function": "TIME_SERIES_DAILY",
-        "symbol": symbol,
-        "apikey": api_key,
-        "outputsize": "full" if premium else "compact",
-    }
-
-    response = requests.get(url, params=params)
-    data = response.json()
-    if "Note" in data:
-        st.error(
-            "Alpha Vantage Rate Limit Hit! Please try again later or upgrade your key."
-        )
-        st.stop()
-
-    if "Information" in data:
-        st.error(f'Message from Alpha Vantage: {data["Information"]}')
-    if "Error Message" in data or ValueError in data:
-        st.error(f"Message from Alpha Vantage: {data}")
-
-    if "Time Series (Daily)" not in data:
-        return pd.DataFrame()
-
-    df = pd.DataFrame.from_dict(data["Time Series (Daily)"], orient="index")
-
-    df.rename(
-        columns={
-            "1. open": "Open",
-            "2. high": "High",
-            "3. low": "Low",
-            "4. close": "Close",
-            "5. volume": "Volume",
-        },
-        inplace=True,
-    )
-
-    df.index = pd.to_datetime(df.index)
-    df = df.reset_index().rename(columns={"index": "Date"})
-    df = df.sort_values("Date")
-
-    numeric_cols = ["Open", "High", "Low", "Close", "Volume"]
-    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
-
-    return df
-
 
 def port(tickers, num_port=3000):
-    prices = pd.DataFrame()
-    for ticker in tickers:
-        df = yf.download(ticker, period="2y", auto_adjust=True)
-        if not df.empty:
-            prices[ticker] = df["Close"]
+
+    df = yf.download(tickers, period="2y", auto_adjust=True)
+    
+    if df.empty:
+        st.warning("Could not download data.")
+        return None
+
+    if isinstance(df.columns, pd.MultiIndex):
+        prices = df['Close']
+    else:
+        prices = df[['Close']].rename(columns={'Close': tickers[0]})
+
     if prices.empty or len(prices.columns) < 2:
         st.warning("You need at least 2 tickers.")
         return None
@@ -489,207 +401,185 @@ def port(tickers, num_port=3000):
     )
     return fig, max_sharpe_df, min_vol, tickers
 
+@st.cache_data(hash_funcs={pd.DataFrame: lambda df: df.to_csv(index=False)})
+def compute(df):
+    df = rsi(df)
+    df = macd(df)
+    df = bollinger(df)
+    df = wrap(df)
+    return df.loc[:, ~df.columns.duplicated()]
 
 def stocks():
-
     try:
-
-        alpha_key = st.text_input(
-            "Type in your API key from Alpha Vantage (free/paid).", type="password"
-        )
         groq_key = st.text_input(
-            "Type in your API key from Groq (free/paid).", type="password"
+            "Optional Groq key.", type="password"
         )
-        if not alpha_key:
-            st.warning("You must enter your own API key.")
-            st.info(
-                "NOTE: If you are using a free key, you may have to click the 'Stock Analysis' button twice."
-            )
-            st.stop()
-        if alpha_key:
 
-            user = st.text_input("Choose a stock. ").upper()
-            user2 = st.date_input("Choose a starting date. Format as YYYY-MM-DD: ")
-            user3 = st.date_input("Choose a ending date. Format as YYYY-MM-DD: ")
-            if st.button("Run Stock Analysis"):
-                if not user:
-                    st.error("Provide a ticker symbol.")
+        user = st.text_input("Choose a stock. ").upper()
+        user2 = st.date_input("Choose a starting date. Format as YYYY-MM-DD: ")
+        user3 = st.date_input("Choose a ending date. Format as YYYY-MM-DD: ")
+        if st.button("Run Stock Analysis"):
+            if not user:
+                st.error("Provide a ticker symbol.")
 
+            else:
+
+                df = yf.download(user, user2, user3, auto_adjust=True)
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = df.columns.get_level_values(0)
+                df = df.reset_index()
+                df['Date'] = pd.to_datetime(df['Date'])
+                if df.empty:
+                    st.error("Invalid ticker or API issue.")
+                    st.stop()
+                df = compute(df)
+                current_macd = df["MACD"].iloc[-1]
+                sig_macd = df["Signal_Line"].iloc[-1]
+                crossover = "Bullish" if current_macd > sig_macd else "Bearish"
+                current_rsi = df["RSI"].iloc[-1]
+
+                df = df[
+                    (df['Date'] >= pd.to_datetime(user2))
+                    & (df['Date'] <= pd.to_datetime(user3))
+                ]
+
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = df.columns.get_level_values(0)
+
+                if df.empty:
+                    st.error("Please provide a stock ticker.")
+                    st.stop()
+
+                def Cagr(df, price_col):
+                    start = df[price_col].iloc[0]
+                    end = df[price_col].iloc[-1]
+                    days = (df["Date"].iloc[-1] - df["Date"].iloc[0]).days
+                    if days == 0 or start == 0:
+                        return 0
+                    return ((end / start) ** (365 / days) - 1) * 100
+
+                stock_cagr = Cagr(df, "Close")
+                close = "Close"
+                price = df[close].iloc[-1]
+                last_close = df[close].iloc[-2]
+                price_delta = price - last_close
+                percent_delta = (price_delta / last_close) * 100
+                df["SMA_100"] = df[close].rolling(window=100).mean()
+                df["SMA_50"] = df[close].rolling(window=50).mean()
+                ticker = yf.Ticker(user)
+                info = ticker.info
+                pe_ratio = info.get("trailingPE")
+                forward_pe = info.get("forwardPE")
+                marketcap = info.get("marketCap")
+                dividend = info.get("dividendYield")
+                debttoequity = info.get("debtToEquity")
+
+                if df["SMA_50"].isna().iloc[-1]:
+                    st.write(
+                        "That is not enough range for 50 day SMA. Please choose a higher date range."
+                    )
+                    st.stop()
+
+                Support = df[close].rolling(window=100).min()
+                Resistance = df[close].rolling(window=100).max()
+
+                df["Support"] = Support
+                df["Resistance"] = Resistance
+
+                today_100 = df["SMA_100"].iloc[-1]
+                today_50 = df["SMA_50"].iloc[-1]
+
+                yesterday_100 = df["SMA_100"].iloc[-2]
+                yesterday_50 = df["SMA_50"].iloc[-2]
+
+                volume = df["Volume"]
+
+                if isinstance(volume, pd.DataFrame):
+                    volume = volume.iloc[:, 0]
+
+                current_vol = float(volume.iloc[-1])
+                vol_avg = float(volume.rolling(90).mean().iloc[-1])
+
+                vol_ratio = current_vol / vol_avg
+
+                df["Annual_Volatility"] = df["Close"].pct_change()
+                annual_vol = df["Annual_Volatility"].std() * (252**0.5) * 100
+                st.metric(f"Annual Volatility ", f"{annual_vol:.2f}")
+                st.metric(f"ATR", f"{atr(df)}")
+                Percent_Distance_to_Support = (
+                    (price - Support.iloc[-1]) / Support.iloc[-1]
+                ) * 100
+
+                st.metric(
+                    f"Percent Away From 50 Day Low",
+                    f"{Percent_Distance_to_Support}",
+                )
+                risk_free = get_risk_free(fred_key)
+                st.metric(f"CAGR", f"{stock_cagr:.2f}")
+                st.metric(f"Sharpe Ratio", f"{sharpness(df, risk_free)}")
+                st.metric(f"RSI", f"{current_rsi}")
+
+                st.metric(f"MACD", f"{current_macd}")
+
+                if yesterday_100 <= yesterday_50 and today_100 > today_50:
+                    st.write("GOLDEN CROSS ✨📈")
+                    st.balloons()
+                elif yesterday_100 >= yesterday_50 and today_100 < today_50:
+                    st.write("DEATH CROSS 📉☠️.")
+                    st.snow()
                 else:
+                    if today_100 > today_50:
+                        st.write("Bullish signs.")
+                    else:
+                        st.write("Bearish signs.")
 
-                    df = fetch_alpha(user, alpha_key, premium=False)
-                    if df.empty:
-                        st.error("Invalid ticker or API issue.")
-                        st.stop()
-                    df = rsi(df)
-                    df = macd(df)
-                    df = bollinger(df)
-                    df = wrap(df)
-                    current_macd = df["MACD"].iloc[-1]
-                    sig_macd = df["Signal_Line"].iloc[-1]
-                    crossover = "Bullish" if current_macd > sig_macd else "Bearish"
-                    current_rsi = df["RSI"].iloc[-1]
-
-                    df = df[
-                        (df["Date"] >= pd.to_datetime(user2))
-                        & (df["Date"] <= pd.to_datetime(user3))
-                    ]
-
-                    if isinstance(df.columns, pd.MultiIndex):
-                        df.columns = df.columns.get_level_values(0)
-
-                    if df.empty:
-                        st.error("Please provide a stock ticker.")
-                        st.stop()
-
-                    def Cagr(df, price_col):
-                        start = df[price_col].iloc[0]
-                        end = df[price_col].iloc[-1]
-                        days = (df["Date"].iloc[-1] - df["Date"].iloc[0]).days
-                        if days == 0 or start == 0:
-                            return 0
-                        return ((end / start) ** (365 / days) - 1) * 100
-
-                    stock_cagr = Cagr(df, "Close")
-                    close = "Close"
-                    price = df[close].iloc[-1]
-                    last_close = df[close].iloc[-2]
-                    price_delta = price - last_close
-                    percent_delta = (price_delta / last_close) * 100
-                    df["SMA_100"] = df[close].rolling(window=100).mean()
-                    df["SMA_50"] = df[close].rolling(window=50).mean()
-                    url = f"https://www.alphavantage.co/query?function=OVERVIEW&symbol={user}&apikey={alpha_key}"
-                    response = requests.get(url)
-                    data = response.json()
-                    pe_ratio = data.get("PERatio", "N/A")
-                    ps_ratio = data.get("PriceToSalesRatioTTM", "N/A")
-                    pb_ratio = data.get("PriceToBookRatio", "N/A")
-                    profit_margin = data.get("ProfitMargin", "N/A")
-                    forward_pe = data.get("ForwardPE", "N/A")
-
-                    if df["SMA_50"].isna().iloc[-1]:
-                        st.write(
-                            "That is not enough range for 50 day SMA. Please choose a higher date range."
-                        )
-                        st.stop()
-
-                    Support = df[close].rolling(window=100).min()
-                    Resistance = df[close].rolling(window=100).max()
-
-                    df["Support"] = Support
-                    df["Resistance"] = Resistance
-
-                    today_100 = df["SMA_100"].iloc[-1]
-                    today_50 = df["SMA_50"].iloc[-1]
-
-                    yesterday_100 = df["SMA_100"].iloc[-2]
-                    yesterday_50 = df["SMA_50"].iloc[-2]
-
-                    volume = df["Volume"]
-
-                    if isinstance(volume, pd.DataFrame):
-                        volume = volume.iloc[:, 0]
-
-                    current_vol = float(volume.iloc[-1])
-                    vol_avg = float(volume.rolling(90).mean().iloc[-1])
-
-                    vol_ratio = current_vol / vol_avg
-
-                    df["Annual_Volatility"] = df["Close"].pct_change()
-                    annual_vol = df["Annual_Volatility"].std() * (252**0.5) * 100
-                    st.metric(f"Annual Volatility ", f"{annual_vol:.2f}")
-                    st.metric(f"ATR", f"{atr(df)}")
-                    Percent_Distance_to_Support = (
-                        (price - Support.iloc[-1]) / Support.iloc[-1]
-                    ) * 100
-
-                    st.metric(
-                        f"Percent Away From 50 Day Low",
-                        f"{Percent_Distance_to_Support}",
+                if vol_ratio > 1.5:
+                    st.write("People are buying this stock more than usual! 🔥")
+                elif vol_ratio < 0.5:
+                    st.write("People are not buying this stock as much. 🧊")
+                elif pd.isna(vol_ratio):
+                    st.write(
+                        "Something went wrong when calculating the volume ratio."
                     )
 
-                    st.metric(f"CAGR", f"{stock_cagr:.2f}")
-                    st.metric(f"Sharpe Ratio", f"{sharpness(df)}")
-                    st.metric(f"RSI", f"{current_rsi}")
+                if price > today_100:
+                    st.write("Price is above the 100-day SMA.")
+                else:
+                    st.write("Price is below the 100-day SMA.")
 
-                    st.metric(f"MACD", f"{current_macd}")
+                if price > today_50:
+                    st.write("Price is above the 50-day SMA.")
+                else:
+                    st.write("Price is below 50-day SMA.")
+                current_vwap = df["VWAP"].iloc[-1]
+                if price > current_vwap:
+                    st.write("Bullish Interday Bias")
+                else:
+                    st.write("Bearish Interday Bias")
 
-                    if yesterday_100 <= yesterday_50 and today_100 > today_50:
-                        st.write("GOLDEN CROSS ✨📈")
-                        st.balloons()
-                    elif yesterday_100 >= yesterday_50 and today_100 < today_50:
-                        st.write("DEATH CROSS 📉☠️.")
-                        st.snow()
-                    else:
-                        if today_100 > today_50:
-                            st.write("Bullish signs.")
-                        else:
-                            st.write("Bearish signs.")
-
-                    if vol_ratio > 1.5:
-                        st.write("People are buying this stock more than usual! 🔥")
-                    elif vol_ratio < 0.5:
-                        st.write("People are not buying this stock as much. 🧊")
-                    elif pd.isna(vol_ratio):
-                        st.write(
-                            "Something went wrong when calculating the volume ratio."
-                        )
-
-                    if price > today_100:
-                        st.write("Price is above the 100-day SMA.")
-                    else:
-                        st.write("Price is below the 100-day SMA.")
-
-                    if price > today_50:
-                        st.write("Price is above the 50-day SMA.")
-                    else:
-                        st.write("Price is below 50-day SMA.")
-                    current_vwap = df["VWAP"].iloc[-1]
-                    if price > current_vwap:
-                        st.write("Bullish Interday Bias")
-                    else:
-                        st.write("Bearish Interday Bias")
-
-                    st.metric(
-                        label="Current Price",
-                        value=f"{price:.2f}",
-                        delta=f"{percent_delta:.2f}",
-                    )
-                    st.metric("P/E Ratio", pe_ratio)
-                    st.metric("Forward P/E Ratio", forward_pe)
-                    st.metric("P/S Ratio", ps_ratio)
-                    st.metric("P/B Ratio", pb_ratio)
-                    st.metric("Profit Margin", profit_margin)
-                    try:
-                        peg = float(pe_ratio) / float(stock_cagr)
-                        peg_dis = peg
-                        st.metric("PEG Ratio", peg_dis)
-                    except Exception:
-                        st.error("Error Calculating PEG Ratio.")
-                        peg_dis = "N/A"
-                    st.write(f"The MACD crossover is {crossover}.")
-                    if crossover == "Bearish":
-                        st.snow()
-                    else:
-                        st.balloons()
-                    st.subheader("News and Sentiment Score")
-                    news = sent(user, alpha_key)
-                    try:
-                        mean_sentiment = sum(item["score"] for item in news) / len(news)
-                    except Exception:
-                        mean_sentiment = 0
-                        st.write("Mean Sentiment: 0")
-                    if news:
-                        if mean_sentiment != 0:
-                            st.write(
-                                f"Mean Sentiment Score on a scale of -1 to 1: {mean_sentiment}"
-                            )
-                        else:
-                            st.write("Mean Sentiment Score on a scale of -1 to 1: 0")
-
-                    else:
-                        st.write("No news was found for this ticker.")
-
+                st.metric(
+                    label="Current Price",
+                    value=f"{price:.2f}",
+                    delta=f"{percent_delta:.2f}",
+                )
+                st.metric("P/E Ratio", pe_ratio)
+                st.metric("Forward P/E Ratio", forward_pe)
+                st.metric("Market Cap", marketcap)
+                st.metric("Dividend Yield", dividend)
+                st.metric("Debt to Equity", debttoequity)
+                try:
+                    peg = float(pe_ratio) / float(stock_cagr)
+                    peg_dis = peg
+                    st.metric("PEG Ratio", peg_dis)
+                except Exception:
+                    st.error("Error Calculating PEG Ratio.")
+                    peg_dis = "N/A"
+                st.write(f"The MACD crossover is {crossover}.")
+                if crossover == "Bearish":
+                    st.snow()
+                else:
+                    st.balloons()
+                if groq_key:
                     st.subheader("What the AI says [Beta]")
                     st.info(
                         groq(
@@ -699,198 +589,194 @@ def stocks():
                             Eliminate Filler: "Ban phrases like 'as evidenced by,', 'blind spot' 'the company's,' and 'representing a.' Use direct, punchy descriptors (e.g., 'Indefensible valuation' instead of 'The valuation appears stretched')."
                             Explicitly flag any 'Bullish/Bearish Divergence' when technicals are strong but growth is negative.
                             Bold the category at the start of each sentence (e.g., Posture:, Conviction:, Valuation:).
-Use Financial Shorthand: "Instruct the AI to use terms like 'multiple expansion/contraction,' 'technical regime,' 'risk-reward skew,' and 'fundamental decay.'"
+    Use Financial Shorthand: "Instruct the AI to use terms like 'multiple expansion/contraction,' 'technical regime,' 'risk-reward skew,' and 'fundamental decay.'"
 
-The "So What?" Rule: "Every sentence must lead with the conclusion, followed by the supporting data (e.g., 'Avoid: 36.8% volatility' rather than 'We recommend avoiding because volatility is 36.8%')."
+    The "So What?" Rule: "Every sentence must lead with the conclusion, followed by the supporting data (e.g., 'Avoid: 36.8% volatility' rather than 'We recommend avoiding because volatility is 36.8%')."
 
-TECHNICAL INDICATORS:
-- RSI: {current_rsi} (Oversold <30 | Neutral 30-70 | Overbought >70)
-- MACD Crossover: {crossover} (Bullish if MACD crosses above signal line, Bearish if below)
-- Annual Volatility: {annual_vol} (Low <20% | Moderate 20-40% | High >40%)
-- Volume Ratio: {vol_ratio} (vs 20-day avg; >1.5 = elevated interest, <0.5 = weak conviction)
+    TECHNICAL INDICATORS:
+    - RSI: {current_rsi} (Oversold <30 | Neutral 30-70 | Overbought >70)
+    - MACD Crossover: {crossover} (Bullish if MACD crosses above signal line, Bearish if below)
+    - Annual Volatility: {annual_vol} (Low <20% | Moderate 20-40% | High >40%)
+    - Volume Ratio: {vol_ratio} (vs 20-day avg; >1.5 = elevated interest, <0.5 = weak conviction)
 
-FUNDAMENTAL INDICATORS:
-- P/E Ratio: {pe_ratio} (Industry avg ~20-25; higher = growth premium or overvaluation)
-- P/B Ratio: {pb_ratio} (>3 may indicate overvaluation; <1 may indicate undervaluation)
-- P/S Ratio: {ps_ratio} (High P/S only justified by strong revenue growth)
-- CAGR: {stock_cagr} (Compound Annual Growth Rate; benchmark against S&P 500 ~10%)
-- PEG Ratio: {peg_dis} (A low PEG ratio means you are paying a bargain price for a company's future growth, where a value under 1.0 suggests the stock is undervalued compared to its earnings potential.)
+    FUNDAMENTAL INDICATORS:
+    - Trailing P/E Ratio: {pe_ratio} (Industry avg ~20-25; higher = growth premium or overvaluation)
+    - Market Cap: {marketcap} (Market Cap ($100B+): Large/Mega-Cap; signifies an established, "Blue Chip" industry leader with high stability.
+                            Market Cap (~$50M): Micro-Cap; signifies a high-risk, early-stage company with significant volatility and lower liquidity.)
+    - Dividend Yield: {dividend} (Dividend yield is a financial ratio, expressed as a percentage, that measures the annual dividend payment a company pays to shareholders relative to its current stock price.)
+    - CAGR: {stock_cagr} (Compound Annual Growth Rate; benchmark against S&P 500 ~10%)
+    - Debt To Equity: {debttoequity} ( A higher ratio indicates1 higher risk and greater reliance on borrowing, while a lower ratio signifies a more conservative, equity-funded structure.)
+    - PEG Ratio: {peg_dis} (A low PEG ratio means you are paying a bargain price for a company's future growth, where a value under 1.0 suggests the stock is undervalued compared to its earnings potential.)
 
-SENTIMENT:
-- Sentiment Score: {mean_sentiment} (Scale: -1 fully negative to +1 fully positive; weight this LESS than quantitative data)
 
 
-ANALYSIS GUIDELINES:
-1. SYNTHESIZE: Do not recite data points in isolation; explain their interaction (e.g., how Volume confirms MACD).
-2. PRECISION: Use 1-2 decimal places max. Avoid "decimal noise."
-3. TONE: Be decisive and skeptical. Use "Bottom Line Up Front" (BLUF) logic.
-4. VOLATILITY: Always frame volatility as a "risk-adjusted" hurdle, not just a number.
 
-OUTPUT FORMAT (Exactly 4 sentences):
-1. THE SETUP: Synthesize RSI, MACD, and Volume into a single market posture.
-2. CONVICTION: Define the strength of the move based on the Volume Ratio/MACD spread.
-3. VALUATION: Contextualize CAGR against P/E, P/B, or P/S; if data is missing, flag the "valuation blind spot."
-4. THE VERDICT: A final risk-adjusted recommendation (e.g., 'Avoid,' 'Accumulate,' or 'Neutral') based on Volatility and contradictions.
+    ANALYSIS GUIDELINES:
+    1. SYNTHESIZE: Do not recite data points in isolation; explain their interaction (e.g., how Volume confirms MACD).
+    2. PRECISION: Use 1-2 decimal places max. Avoid "decimal noise."
+    3. TONE: Be decisive and skeptical. Use "Bottom Line Up Front" (BLUF) logic.
+    4. VOLATILITY: Always frame volatility as a "risk-adjusted" hurdle, not just a number.
+
+    OUTPUT FORMAT (Exactly 4 sentences):
+    1. THE SETUP: Synthesize RSI, MACD, and Volume into a single market posture.
+    2. CONVICTION: Define the strength of the move based on the Volume Ratio/MACD spread.
+    3. VALUATION: Contextualize CAGR against P/E, P/B, or P/S; if data is missing, flag the "valuation blind spot."
+    4. THE VERDICT: A final risk-adjusted recommendation (e.g., 'Avoid,' 'Accumulate,' or 'Neutral') based on Volatility and contradictions.
                             """,
                             groq_key,
                         )
                     )
 
-                    plot_df = df.dropna(
-                        subset=["MACD", "Signal_Line", "MACD_Histogram"]
+                plot_df = df.dropna(
+                    subset=["MACD", "Signal_Line", "MACD_Histogram"]
+                )
+                if not plot_df.empty:
+                    fig = make_subplots(
+                        rows=2,
+                        cols=1,
+                        shared_xaxes=True,
+                        vertical_spacing=0.03,
+                        subplot_titles=(f"{user} Stock Analysis", "MACD"),
+                        row_width=[0.3, 0.7],
                     )
-                    if not plot_df.empty:
-                        fig = make_subplots(
-                            rows=2,
-                            cols=1,
-                            shared_xaxes=True,
-                            vertical_spacing=0.03,
-                            subplot_titles=(f"{user} Stock Analysis", "MACD"),
-                            row_width=[0.3, 0.7],
-                        )
 
-                        price_path, p5, p50, p95 = sim(df)
-                        days = list(range(30))
-                        fig_sim = go.Figure()
+                    price_path, p5, p50, p95 = sim(df)
+                    days = list(range(30))
+                    fig_sim = go.Figure()
 
-                        fig_sim.add_trace(
-                            go.Scatter(
-                                x=days,
-                                y=p5,
-                                fill="tonexty",
-                                fillcolor="rgba(100, 149, 237, 0.3)",
-                                line=dict(color="rgba(0,0,0,0)"),
-                                name="5th–95th Percentile",
-                            )
+                    fig_sim.add_trace(
+                        go.Scatter(
+                            x=days,
+                            y=p5,
+                            fill="tonexty",
+                            fillcolor="rgba(100, 149, 237, 0.3)",
+                            line=dict(color="rgba(0,0,0,0)"),
+                            name="5th–95th Percentile",
                         )
+                    )
 
-                        fig_sim.add_trace(
-                            go.Scatter(
-                                x=days,
-                                y=p50,
-                                line=dict(color="royalblue", width=2),
-                                name="Median Path",
-                            )
+                    fig_sim.add_trace(
+                        go.Scatter(
+                            x=days,
+                            y=p50,
+                            line=dict(color="royalblue", width=2),
+                            name="Median Path",
                         )
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df["Date"],
-                                y=df["Close"],
-                                name="Closing Price",
-                                line=dict(color="gold", width=1),
-                            ),
-                            row=1,
-                            col=1,
-                        )
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df["Date"],
-                                y=df["SMA_50"],
-                                name="50 Day SMA",
-                                line=dict(color="orange", width=1),
-                            ),
-                            row=1,
-                            col=1,
-                        )
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df["Date"],
-                                y=df["SMA_100"],
-                                name="100 Day SMA",
-                                line=dict(color="orange", width=1),
-                            ),
-                            row=1,
-                            col=1,
-                        )
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df["Date"],
-                                y=df["BB_Up"],
-                                line=dict(color="rgba(0,0,0,0)"),
-                                showlegend=False,
-                            ),
-                            row=1,
-                            col=1,
-                        )
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df["Date"],
-                                y=df["BB_Down"],
-                                line=dict(color="rgba(0,0,0,0)"),
-                                fill="tonexty",
-                                fillcolor="rgba(173, 216, 230, 0.2)",
-                                name="Bollinger Band",
-                            ),
-                            row=1,
-                            col=1,
-                        )
-                        fig.add_trace(
-                            go.Bar(
-                                x=df["Date"], y=df["MACD_Histogram"], name="Histogram"
-                            ),
-                            row=2,
-                            col=1,
-                        )
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df["Date"],
-                                y=df["MACD"],
-                                name="MACD",
-                                line=dict(color="black"),
-                            ),
-                            row=2,
-                            col=1,
-                        )
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df["Date"],
-                                y=df["Signal_Line"],
-                                name="Signal",
-                                line=dict(color="red"),
-                            ),
-                            row=2,
-                            col=1,
-                        )
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df["Date"],
-                                y=df["VWAP"],
-                                name="VWAP",
-                                line=dict(color="red"),
-                            ),
-                            row=1,
-                            col=1,
-                        )
-                        fig.update_layout(
-                            xaxis_rangeslider_visible=False,
-                            height=800,
-                            template="plotly_white",
-                            showlegend=True,
-                        )
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df["Date"],
+                            y=df["Close"],
+                            name="Closing Price",
+                            line=dict(color="gold", width=1),
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df["Date"],
+                            y=df["SMA_50"],
+                            name="50 Day SMA",
+                            line=dict(color="orange", width=1),
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df["Date"],
+                            y=df["SMA_100"],
+                            name="100 Day SMA",
+                            line=dict(color="orange", width=1),
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df["Date"],
+                            y=df["BB_Up"],
+                            line=dict(color="rgba(0,0,0,0)"),
+                            showlegend=False,
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df["Date"],
+                            y=df["BB_Down"],
+                            line=dict(color="rgba(0,0,0,0)"),
+                            fill="tonexty",
+                            fillcolor="rgba(173, 216, 230, 0.2)",
+                            name="Bollinger Band",
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.add_trace(
+                        go.Bar(
+                            x=df["Date"], y=df["MACD_Histogram"], name="Histogram"
+                        ),
+                        row=2,
+                        col=1,
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df["Date"],
+                            y=df["MACD"],
+                            name="MACD",
+                            line=dict(color="black"),
+                        ),
+                        row=2,
+                        col=1,
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df["Date"],
+                            y=df["Signal_Line"],
+                            name="Signal",
+                            line=dict(color="red"),
+                        ),
+                        row=2,
+                        col=1,
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df["Date"],
+                            y=df["VWAP"],
+                            name="VWAP",
+                            line=dict(color="red"),
+                        ),
+                        row=1,
+                        col=1,
+                    )
+                    fig.update_layout(
+                        xaxis_rangeslider_visible=False,
+                        height=800,
+                        template="plotly_white",
+                        showlegend=True,
+                    )
 
-                        st.plotly_chart(fig, use_container_width=True)
-                        st.plotly_chart(fig_sim, use_container_width=True)
+                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig_sim, use_container_width=True)
 
-                        pdf_buffer = io.BytesIO()
+                
 
-                        st.write(
-                            "The app is for educational/informational purposes, not financial advice."
-                        )
-                        st.write(
-                            "Talos AI is an experimental tool. Trading small-caps involves high risk of capital loss."
-                        )
-                        with PdfPages(pdf_buffer) as pdf:
-                            fig.write_image("chart.png")
-
-                            fig.update_xaxes(title_text="Date", tickangle=-45)
-                            fig.update_yaxes(title_text="Price", tickangle=-45)
-                        pdf_buffer.seek(0)
-                        st.download_button(
-                            label="Download Report as PDF",
-                            data=pdf_buffer,
-                            file_name=f"{user}_analysis.pdf",
-                            mime="application/pdf",
-                        )
+                    st.write(
+                        "The app is for educational/informational purposes, not financial advice."
+                    )
+                    st.write(
+                        "Talos AI is an experimental tool. Trading small-caps involves high risk of capital loss."
+                    )
+                    html_buffer = fig.to_html()
+                    st.download_button(
+                        label="Download Report as PDF",
+                        data=html_buffer,
+                        file_name=f"{user}_analysis.pdf",
+                        mime="application/pdf",
+                    )
 
     except FileNotFoundError:
         return "The file was not found..."
@@ -898,7 +784,7 @@ OUTPUT FORMAT (Exactly 4 sentences):
     except PermissionError:
         return "You do not have permissions for this file."
 
-
+@st.cache_resource
 def create_sql():
     conn = sqlite3.connect("talos.db", check_same_thread=False)
     return conn
@@ -918,9 +804,9 @@ def initialize_db():
     conn.commit()
     conn.close()
 
-
+@st.cache_data(ttl=61)
 def pull_data():
-    conn = sqlite3.connect("talos.db", check_same_thread=False)
+    conn = create_sql()
     cursor = conn.cursor()
     cursor.execute("SELECT username, name, email, password_hash FROM users")
     rows = cursor.fetchall()
@@ -938,16 +824,6 @@ def pull_data():
 
     return creds
 
-
-def save_chat(username, role, content):
-    conn = create_sql()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO chat_history (username, role, content) VALUES (?, ?, ?)",
-        (username, role, content),
-    )
-    conn.commit()
-    conn.close()
 
 
 def stock_analysis(uploaded):
@@ -983,17 +859,4 @@ def stock_analysis(uploaded):
             return f"Something went wrong...{e}"
 
 
-def stats():
-    conn = create_sql()
-    cursor = conn.cursor()
 
-    query = """
-        SELECT u.username, u.name, COUNT(c.id) as message_count
-        FROM users u
-        LEFT JOIN chat_history c ON u.username = c.username
-        GROUP BY u.username
-    """
-    cursor.execute(query)
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
