@@ -281,18 +281,18 @@ with st.spinner('Setting Up...'):
                     ) / 100
                 if st.button('Calculate'):
                     result = intr(ticker, growth_rate, discount_rate, terminal_growth)
-                if result:
-                    intrinsic_value_per_share, current_price, df_proj, terminal_value_pv = result
-                    st.metric('Current Price', value=current_price)
-                    st.metric('Intrinsic Value', value=intrinsic_value_per_share)
-                    st.metric('Terminal Value', value=f'{terminal_value_pv:.2f}B')
-                    st.dataframe(df_proj)
-                    if intrinsic_value_per_share > current_price * 1.15:
-                            verdict = '🟢 Undervalued'
-                    elif intrinsic_value_per_share < current_price * 0.85:
-                        verdict = '🔴 Overvalued'
-                    else:
-                        verdict = '🟡 Fairly Valued'
+                    if result:
+                        intrinsic_value_per_share, current_price, df_proj, terminal_value_pv = result
+                        st.metric('Current Price', value=current_price)
+                        st.metric('Intrinsic Value', value=intrinsic_value_per_share)
+                        st.metric('Terminal Value', value=f'{terminal_value_pv:.2f}B')
+                        st.dataframe(df_proj)
+                        if intrinsic_value_per_share > current_price * 1.15:
+                                verdict = '🟢 Undervalued'
+                        elif intrinsic_value_per_share < current_price * 0.85:
+                            verdict = '🔴 Overvalued'
+                        else:
+                            verdict = '🟡 Fairly Valued'
                     
                     st.subheader(verdict)
                         
