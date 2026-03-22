@@ -24,7 +24,7 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 with st.spinner('Setting Up...'):
     initialize_db()
     st.session_state['analysis'] = False
-    main_area = st.empty()
+    main_area = st.container()
 
 
     credentials = pull_data()   
@@ -110,7 +110,7 @@ with st.spinner('Setting Up...'):
 
 
 
-        with main_area.container():
+        with main_area:
             name = st.session_state.get('name','user')
             if st.session_state.get('username') == 'demo_123':
                 pass
