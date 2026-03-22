@@ -136,6 +136,13 @@ with st.spinner('Setting Up...'):
                 options=options,
                 label_visibility='collapsed'
             )
+
+            if 'current_option' not in st.session_state:
+                st.session_state['current_option'] = option
+
+            if st.session_state['current_option'] != option:
+                st.session_state['current_option'] = option
+                st.rerun()
             theme = st.sidebar.radio('Select a Theme',['Light','Dark [Beta]'])
             if theme == 'Light':
                 st.markdown("""
@@ -282,18 +289,18 @@ with st.spinner('Setting Up...'):
                 if st.button('Calculate'):
                     if ticker:
                         result = intr(ticker, growth_rate, discount_rate, terminal_growth)
-                        if result:
-                            intrinsic_value_per_share, current_price, df_proj, terminal_value_pv = result
-                            st.metric('Current Price', value=current_price)
-                            st.metric('Intrinsic Value', value=intrinsic_value_per_share)
-                            st.metric('Terminal Value', value=f'{terminal_value_pv:.2f}B')
-                            st.dataframe(df_proj)
-                            if intrinsic_value_per_share > current_price * 1.15:
-                                    verdict = '🟢 Undervalued'
-                            elif intrinsic_value_per_share < current_price * 0.85:
-                                verdict = '🔴 Overvalued'
-                            else:
-                                verdict = '🟡 Fairly Valued'
+                    if result:
+                        intrinsic_value_per_share, current_price, df_proj, terminal_value_pv = result
+                        st.metric('Current Price', value=current_price)
+                        st.metric('Intrinsic Value', value=intrinsic_value_per_share)
+                        st.metric('Terminal Value', value=f'{terminal_value_pv:.2f}B')
+                        st.dataframe(df_proj)
+                        if intrinsic_value_per_share > current_price * 1.15:
+                                verdict = '🟢 Undervalued'
+                        elif intrinsic_value_per_share < current_price * 0.85:
+                            verdict = '🔴 Overvalued'
+                        else:
+                            verdict = '🟡 Fairly Valued'
                     
                     st.subheader(verdict)
                         
