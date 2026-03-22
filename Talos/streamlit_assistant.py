@@ -23,7 +23,6 @@ from streamlit.runtime.scriptrunner import RerunException
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 initialize_db()
-st.session_state['analysis'] = False
 main_area = st.container()
 
 
@@ -257,7 +256,9 @@ if authentication_status:
                     st.plotly_chart(fig)
                     st.warning('For educational purposes only. Not financial advice.')
         elif option == '📊 Intrinsic Value': 
+            st.info('Note: When you update the slider, you will have to click the Calculate button again.')
             ticker = st.text_input('Type in your stock ticker.')
+
             col1, col2, col3 = st.columns(3)
 
             with col1:
@@ -314,11 +315,11 @@ if authentication_status:
             stock = st.text_input('Choose a Stock. Format as NVDA.')
             if stock:
                 ticker = yf.Ticker(stock)
-                price = yf.download(stock)
+                price = ticker.info.get('currentPrice', 'N/A')
                 expirations = ticker.options
                 choice = st.selectbox('Choose an Expiry Date', options=expirations)
                 st.metric('Current Price', value=f'${price}')
-                chain = stock.option_chain(choice)
+                chain = ticker.option_chain(choice)
                 calls = chain.calls
                 puts = chain.puts
                 important_cols = ['strike', 'lastPrice', 'bid', 'ask', 'volume', 'openInterest', 'impliedVolatility']
