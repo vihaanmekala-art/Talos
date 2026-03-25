@@ -776,8 +776,8 @@ def stocks():
 
                     st.plotly_chart(fig, width='stretch')
                     st.plotly_chart(fig_sim,width='stretch')
-                    
-                    st.line_chart(back['portfolip'])
+                    st.subheader('Equity Curve')
+                    st.line_chart(back['portfolio'])
                 
 
                     st.write(
