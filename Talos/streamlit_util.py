@@ -773,9 +773,11 @@ def stocks():
                         showlegend=True,
                     )
 
+
                     st.plotly_chart(fig, width='stretch')
                     st.plotly_chart(fig_sim,width='stretch')
-
+                    
+                    st.line_chart(back['portfolip'])
                 
 
                     st.write(
