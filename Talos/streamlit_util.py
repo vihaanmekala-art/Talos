@@ -580,11 +580,8 @@ def stocks():
                     st.balloons()
                 
                 st.subheader('Backtest Your Strategy')
-                buy = st.slider("RSI Buy Threshold", 10, 50, 30)
-                sell = st.slider("RSI Sell Threshold", 50, 90, 70)
-                cash = st.number_input("Starting Cash ($)", value=10000)
             
-                st.session_state['backtest'] = backtester(df, buy, sell, cash)
+                st.session_state['backtest'] = backtester(df)
                 back = st.session_state['backtest']
                 st.subheader('Backtest Results')
                 st.metric(f'Portfolio Value', value = back['portfolio'])
@@ -592,6 +589,7 @@ def stocks():
                 st.metric('Sharpe Ratio', value = back['sharpe'])
                 st.metric(f'Total Buys', f'{back['buy']}')
                 st.metric(f'Total Sells', f'{back['sell']}')
+                st.line_chart(back['portfolio'])
 
                 if groq_key:
                     st.subheader("What the AI says [Beta]")
@@ -777,7 +775,6 @@ def stocks():
                     st.plotly_chart(fig, width='stretch')
                     st.plotly_chart(fig_sim,width='stretch')
                     st.subheader('Equity Curve')
-                    st.line_chart(back['portfolio'])
                 
 
                     st.write(

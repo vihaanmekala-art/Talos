@@ -16,9 +16,9 @@ def backtester(df, buy_rsi = 30, sell_rsi=70, starter_cash = 10000):
     tot_returns = (portfolio[-1] - starter_cash) * 100 / starter_cash
 
     sharpe = np.mean(strat_return) / np.std(strat_return) * np.sqrt(252)
-    portfolio = portfolio[-1]
+   
     buy = len(np.where(signals == 1)[0])
-    sell = len(np.where(signals == 0)[0])
+    sell = len(np.where(signals == -1)[0])
     portfolio = pd.Series(portfolio)
     return {
         "portfolio": portfolio,
