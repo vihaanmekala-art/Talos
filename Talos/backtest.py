@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 def backtester(df, buy_rsi = 30, sell_rsi=70, starter_cash = 10000):
     rsi = df['RSI'].values
@@ -18,6 +19,7 @@ def backtester(df, buy_rsi = 30, sell_rsi=70, starter_cash = 10000):
     portfolio = portfolio[-1]
     buy = len(np.where(signals == 1)[0])
     sell = len(np.where(signals == 0)[0])
+    portfolio = pd.Series(portfolio)
     return {
         "portfolio": portfolio,
         "total_return": tot_returns,
