@@ -583,8 +583,7 @@ def stocks():
             
                 st.session_state['backtest'] = backtester(df)
                 back = st.session_state['backtest']
-                st.subheader('Backtest Results')
-                st.metric(f'Portfolio Value', value = back['portfolio'])
+                st.subheader('Backtest Results (Buy At RSI = 30, Sell At RSI = 70)')
                 st.metric(f'Total Returns', value=f'{back['total_return']}%')
                 st.metric('Sharpe Ratio', value = back['sharpe'])
                 st.metric(f'Total Buys', f'{back['buy']}')
