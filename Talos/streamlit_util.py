@@ -18,6 +18,7 @@ import sqlite3
 import plotly.graph_objects as go
 import numpy as np
 import yfinance as yf
+from backtest import backtester
 
 fred_key = st.secrets["FRED_KEY"]
 
@@ -195,9 +196,10 @@ def show_macro():
             st.metric("10 Year Treasury Yield", value=f"{tres_yield}%")
         with col3:
             st.metric("S&P 500 Price", value=f"${sp500}")
-    except:
-        pass
-
+    except NameError :
+        st.error('Something went wrong...')
+    except TypeError:
+        st.error('Something went wrong...')
 
 def sharpness(df, risk_free):
     returns = df["Close"].dropna().pct_change().dropna()
@@ -576,6 +578,21 @@ def stocks():
                     st.snow()
                 else:
                     st.balloons()
+                
+                st.subheader('Backtest Your Strategy')
+                buy = st.slider("RSI Buy Threshold", 10, 50, 30)
+                sell = st.slider("RSI Sell Threshold", 50, 90, 70)
+                cash = st.number_input("Starting Cash ($)", value=10000)
+            
+                st.session_state['backtest'] = backtester(df, buy, sell, cash)
+                back = st.session_state['backtest']
+                st.subheader('Backtest Results')
+                st.metric(f'Portfolio Value', value = back['portfolio'])
+                st.metric(f'Total Returns', value=f'{back['total_return']}%')
+                st.metric('Sharpe Ratio', value = back['sharpe'])
+                st.metric(f'Total Buys', f'{back['buy']}')
+                st.metric(f'Total Sells', f'{back['sell']}')
+
                 if groq_key:
                     st.subheader("What the AI says [Beta]")
                     st.info(
