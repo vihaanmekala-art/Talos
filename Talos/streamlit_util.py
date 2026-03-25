@@ -579,7 +579,6 @@ def stocks():
                 else:
                     st.balloons()
                 
-                st.subheader('Backtest Your Strategy')
             
                 st.session_state['backtest'] = backtester(df)
                 back = st.session_state['backtest']
