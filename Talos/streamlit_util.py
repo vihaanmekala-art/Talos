@@ -796,42 +796,6 @@ def stocks():
         return "You do not have permissions for this file."
 
 
-def create_sql():
-    conn = sqlite3.connect("talos.db", check_same_thread=False)
-    return conn
-
-
-def initialize_db():
-    conn = create_sql()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            name TEXT,
-            email TEXT,
-            password_hash TEXT
-        )
-    """)
-    conn.commit()
-
-
-def pull_data():
-    conn = create_sql()
-    cursor = conn.cursor()
-    cursor.execute("SELECT username, name, email, password_hash FROM users")
-    rows = cursor.fetchall()
-    creds = {"usernames": {}}
-    for row in rows:
-        username, name, email, password_hash = row
-        creds["usernames"][username] = {
-            "name": name,
-            "password": password_hash,
-            "email": email,
-            "logged_in": False,
-        }
-
-    return creds
-
 
 
 def stock_analysis(uploaded):
