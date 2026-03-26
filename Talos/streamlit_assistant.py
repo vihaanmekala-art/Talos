@@ -35,6 +35,7 @@ authenticator = stauth.Authenticate(
     cookie_key=cookie_key,
     cookie_expiry_days=30,
     pre_authorized = []
+    
 )
 
 
