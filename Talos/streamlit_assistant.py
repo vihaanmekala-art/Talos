@@ -34,7 +34,7 @@ authenticator = stauth.Authenticate(
     "talos_cookie",      
     cookie_key,     
     30,
-    None 
+    []
 )
 
 
