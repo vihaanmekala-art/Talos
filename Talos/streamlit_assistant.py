@@ -30,11 +30,10 @@ credentials = pull_data()
 cookie_key = st.secrets['COOKIE_SECRET_KEY']
 
 authenticator = stauth.Authenticate(
-    credentials,
-    "talos_cookie",      
-    cookie_key,     
-    30,
-    []
+    credentials=credentials,
+    cookie_name="talos_cookie",
+    cookie_key=cookie_key,
+    cookie_expiry_days=30
 )
 
 
