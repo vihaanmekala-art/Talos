@@ -138,34 +138,36 @@ with main_area:
             if st.session_state.get('stock', False):
                 stocks()
     elif option == '⚖️ Portfolio Optimizer':
-        
-        tickers = st.text_input('Choose 2 stocks. Format as AAPL, NVDA.')
-        tickers = [t.strip().upper() for t in tickers.split(',')]
-        if st.button('Optimize'):
-            with st.spinner('HELP'):
-                
-                fig, max_sharpe_df, min_vol, tickers = port(tickers)
+        try:
+            tickers = st.text_input('Choose 2 stocks. Format as AAPL, NVDA.')
+            tickers = [t.strip().upper() for t in tickers.split(',')]
+            if st.button('Optimize'):
+                with st.spinner('Hunting for alpha...'):
+                    
+                    fig, max_sharpe_df, min_vol, tickers = port(tickers)
 
-                col1a, col2a = st.columns(2)
-                with col1a:
-                    st.subheader('⭐ Max Sharpe Portfolio')
-                    st.metric('Expected Return', f"{max_sharpe_df['returns']:.2%}")
-                    st.metric('Expected Risk', f"{max_sharpe_df['risk']:.2%}")
-                    st.metric('Sharpe Ratio', f"{max_sharpe_df['sharpe']:.2f}")
-                    st.write('**Allocations:**')
-                    for ticker, w in zip(tickers, max_sharpe_df['Weight']):
-                        st.write(f"- {ticker}: {w:.1%}")
-                with col2a:
-                    st.subheader('🛡️ Min Volatility Portfolio')
-                    st.metric('Expected Return', f"{min_vol['returns']:.2%}")
-                    st.metric('Expected Risk', f"{min_vol['risk']:.2%}")
-                    st.metric('Sharpe Ratio', f"{min_vol['sharpe']:.2f}")
-                    st.write('**Allocations:**')
-                    for ticker, w in zip(tickers, min_vol['Weight']):
-                        st.write(f"- {ticker}: {w:.1%}")
+                    col1a, col2a = st.columns(2)
+                    with col1a:
+                        st.subheader('⭐ Max Sharpe Portfolio')
+                        st.metric('Expected Return', f"{max_sharpe_df['returns']:.2%}")
+                        st.metric('Expected Risk', f"{max_sharpe_df['risk']:.2%}")
+                        st.metric('Sharpe Ratio', f"{max_sharpe_df['sharpe']:.2f}")
+                        st.write('**Allocations:**')
+                        for ticker, w in zip(tickers, max_sharpe_df['Weight']):
+                            st.write(f"- {ticker}: {w:.1%}")
+                    with col2a:
+                        st.subheader('🛡️ Min Volatility Portfolio')
+                        st.metric('Expected Return', f"{min_vol['returns']:.2%}")
+                        st.metric('Expected Risk', f"{min_vol['risk']:.2%}")
+                        st.metric('Sharpe Ratio', f"{min_vol['sharpe']:.2f}")
+                        st.write('**Allocations:**')
+                        for ticker, w in zip(tickers, min_vol['Weight']):
+                            st.write(f"- {ticker}: {w:.1%}")
 
-                st.plotly_chart(fig)
-                st.warning('For educational purposes only. Not financial advice.')
+                    st.plotly_chart(fig)
+                    st.warning('For educational purposes only. Not financial advice.')
+        except TypeError:
+            st.write('One of your tickers is invalid...')
     elif option == '📊 Intrinsic Value': 
         st.info('Note: When you update the slider, you will have to click the Calculate button again.')
         ticker = st.text_input('Type in your stock ticker.')
