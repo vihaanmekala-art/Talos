@@ -214,7 +214,7 @@ with main_area:
                 else:
                     verdict = '🟡 Fairly Valued'
             
-            st.subheader(verdict)
+                st.subheader(verdict)
                 
             st.warning('For educational purposes only. Not financial advice.')
     elif option == '🌐 Macro Information':

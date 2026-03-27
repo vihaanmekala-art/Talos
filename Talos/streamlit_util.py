@@ -14,7 +14,6 @@ import sympy as sp
 import streamlit as st
 import pandas as pd
 from plotly.subplots import make_subplots
-import sqlite3
 import plotly.graph_objects as go
 import numpy as np
 import yfinance as yf
@@ -318,6 +317,7 @@ def port(tickers, num_port=3000):
 
     if prices.empty or len(prices.columns) < 2:
         st.warning("You need at least 2 tickers.")
+        st.stop()
         return None
     returns = np.log(prices / prices.shift(1))
     mean = returns.mean() * 252
