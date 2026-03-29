@@ -830,5 +830,3 @@ def stock_analysis(uploaded):
             st.error("Something went wrong...")
             return f"Something went wrong...{e}"
 
-
-
