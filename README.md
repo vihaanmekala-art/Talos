@@ -70,7 +70,7 @@ real-world interest for educational and analytical use.
 git clone https://github.com/vihaanmekala-art/Talos.git
 cd Talos
 pip install -r requirements.txt
-streamlit run streamlit_app.py
+streamlit run Talos/streamlit_assistant.py
 ```
 
 ## 🚀 Try Talos
