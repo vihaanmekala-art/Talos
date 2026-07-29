@@ -74,10 +74,10 @@ def main() -> None:
 
     st.divider()
 
-    if option != "Stock Analysis":
+    if option != "\U0001F4C8 Stock Analysis":
         st.session_state["stock"] = False
 
-    if option == "Home Page":
+    if option == "\U0001F3E0 Home Page":
         col2, col3 = st.columns(2)
         with col2:
             st.subheader("AI insights.")
@@ -92,14 +92,14 @@ def main() -> None:
             if st.button("Generate a Fact"):
                 st.write(tips[-1])
 
-    elif option == "Calculate an Expression":
+    elif option == "\U0001F9E0 Calculate an Expression":
         st.write("This was made possible with the Sympy Library.")
         st.write("Format trig ratios as Sin(30) or Cos(85)")
         question = st.text_input("Ask a math question:")
         answer = calculate(question)
         st.success(answer)
 
-    elif option == "Stock Analysis":
+    elif option == "\U0001F4C8 Stock Analysis":
         file = st.file_uploader("Choose a JSON or CSV file.", type=["json", "csv"])
         if file is not None:
             stock_analysis(file)
@@ -111,7 +111,7 @@ def main() -> None:
             if st.session_state.get("stock", False):
                 stocks()
 
-    elif option == "Portfolio Optimizer":
+    elif option == "\u2696 Portfolio Optimizer":
         try:
             tickers_input = st.text_input("Choose 2+ stocks separated by commas. Format as AAPL, NVDA.")
             tickers = [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
@@ -142,7 +142,7 @@ def main() -> None:
         except TypeError:
             st.write("One of your tickers is invalid...")
 
-    elif option == "Intrinsic Value":
+    elif option == "\U0001F4CA Intrinsic Value":
         st.info("Note: When you update the slider, you will have to click the Calculate button again.")
         ticker = st.text_input("Type in your stock ticker.")
 
@@ -172,11 +172,11 @@ def main() -> None:
                 st.subheader(verdict)
             st.warning("For educational purposes only. Not financial advice.")
 
-    elif option == "Macro Information":
+    elif option == "\U0001F310 Macro Information":
         with st.spinner("Crunching Data..."):
             show_macro()
 
-    elif option == "Options Chain":
+    elif option == "\U0001F4CA Options Chain":
         stock = st.text_input("Choose a Stock. Format as NVDA.")
         if stock:
             yf_ticker = yf.Ticker(stock)
